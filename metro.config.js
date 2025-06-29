@@ -6,7 +6,6 @@ const path = require('path');
 const config = getDefaultConfig(__dirname);
 
 // Enable CSS support for web
-config.transformer.unstable_allowRequireContext = true;
 config.resolver.sourceExts.push('css');
 
 // Optimize Metro bundler
