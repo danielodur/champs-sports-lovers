@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "name": "Champs",
+    "slug": "champs-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "rapidApiKey": "e78f756777msh75b3850f0f66d39p128d74jsn1701b20ca5c7",
+      "apiFootballHost": "api-football-v1.p.rapidapi.com",
+      "newsApiKey": "",
+      "environment": "production",
+      "enableRealData": true,
+      "useMockData": false,
+      "sportRadarApiKey": "XGaGvZ8R72y110rTQqxLhykH5PGLJw96ImZwv44L"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.champs.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to camera to take profile pictures for your account.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for your profile picture.",
+        "NSMicrophoneUsageDescription": "This app may need microphone access for video features."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.champs.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro"
+    },
+    "sdkVersion": "53.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "scheme": "champs",
+    "privacy": "public",
+    "githubUrl": "https://github.com/yourusername/champs",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Champs to access your photo library to select profile pictures.",
+          "cameraPermission": "Allow Champs to use your camera to take profile pictures."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#ffffff",
+          "sounds": [
+            "./assets/notification-sound.wav"
+          ]
+        }
+      ]
+    ],
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#ffffff"
+    }
+  }
+}
