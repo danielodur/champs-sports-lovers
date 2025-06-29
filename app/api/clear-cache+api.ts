@@ -6,4 +6,4 @@ export async function POST(request: Request) {
   return new Response(JSON.stringify({ success: true, message: 'All caches cleared' }), {
     headers: { 'Content-Type': 'application/json' },
   });
-} 
+}
