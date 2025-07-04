@@ -1,0 +1,98 @@
+{
+    "rules": [
+      {
+        "description": "🧠 PROTECT: Prevent AI from changing core business logic across major app domains",
+        "filePatterns": [
+          "app/**/*.ts",
+          "app/**/*.tsx",
+          "services/**/*.ts",
+          "services/**/*.tsx",
+          "contexts/**/*.ts",
+          "contexts/**/*.tsx",
+          "hooks/**/*.ts",
+          "hooks/**/*.tsx",
+          "utils/**/*.ts",
+          "utils/**/*.tsx",
+          "types/**/*.ts"
+        ],
+        "allowChanges": false,
+        "allowSuggestions": false
+      },
+      {
+        "description": "📡 LOCK: Do not allow API endpoint or service logic to be modified",
+        "filePatterns": [
+          "services/sportsApiService.ts",
+          "services/newsService.ts",
+          "services/matchService.ts",
+          "services/leagueService.ts",
+          "services/favoritesService.ts"
+        ],
+        "allowChanges": false,
+        "allowSuggestions": false
+      },
+      {
+        "description": "🎯 KEEP STABLE: Block AI from altering prediction algorithms and live score logic",
+        "filePatterns": [
+          "utils/predictionEngine.ts",
+          "services/liveScoreService.ts",
+          "contexts/liveUpdatesContext.tsx"
+        ],
+        "allowChanges": false,
+        "allowSuggestions": false
+      },
+      {
+        "description": "🔐 DO NOT TOUCH: Authentication, privacy, and user preference logic",
+        "filePatterns": [
+          "contexts/authContext.tsx",
+          "services/authService.ts",
+          "contexts/userPreferencesContext.tsx"
+        ],
+        "allowChanges": false,
+        "allowSuggestions": false
+      },
+      {
+        "description": "🎨 ALLOW SAFE FORMATTING: Allow UI component formatting only, not logic changes",
+        "filePatterns": [
+          "components/**/*.tsx",
+          "app/screens/**/*.tsx",
+          "app/navigation/**/*.tsx"
+        ],
+        "allowChanges": true,
+        "allowStructuralChanges": false
+      },
+      {
+        "description": "⚠️ RESTRICT: Prevent changes to configuration and system files",
+        "filePatterns": [
+          "package.json",
+          "app.json",
+          "babel.config.js",
+          "metro.config.js",
+          "tsconfig.json",
+          ".env",
+          ".env.*"
+        ],
+        "allowChanges": false
+      },
+      {
+        "description": "🧪 TESTS ONLY: Allow full changes in test files",
+        "filePatterns": [
+          "**/*.test.ts",
+          "**/*.test.tsx",
+          "tests/**/*.ts"
+        ],
+        "allowChanges": true
+      },
+      {
+        "description": "🚫 IGNORE: Never let AI touch node_modules, build output, or static files",
+        "filePatterns": [
+          "**/node_modules/**",
+          "**/build/**",
+          "**/dist/**",
+          "**/.expo/**",
+          "assets/**"
+        ],
+        "allowChanges": false,
+        "allowSuggestions": false
+      }
+    ]
+  }
