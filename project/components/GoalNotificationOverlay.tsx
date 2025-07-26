@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Vibration, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { useMatchSettings } from '@/contexts/MatchSettingsContext';
 import { useTheme } from '@/hooks/useTheme';
+import { playGoalSound, playRedCardSound } from '@/utils/SoundManager';
+import { vibrateForGoal, vibrateForRedCard } from '@/utils/VibrationManager';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -88,6 +90,11 @@ const CompactGoalAlert: React.FC<CompactGoalAlertProps> = ({ notification, index
       }
     }
     
+    // ✅ ENHANCED: Red card event handling
+    if (eventType === 'red_card') {
+      return 'RED CARD';
+    }
+    
     // Regular goal text
     switch (sport.toLowerCase()) {
       case 'football':
@@ -101,8 +108,9 @@ const CompactGoalAlert: React.FC<CompactGoalAlertProps> = ({ notification, index
     }
   };
 
-  // Determine if this is a cancelled goal alert
+  // Determine alert type for styling
   const isCancelled = notification.eventType === 'cancelled';
+  const isRedCard = notification.eventType === 'red_card';
 
   // Calculate position based on index (stack vertically with proper spacing)
   const topPosition = 50 + (index * 80); // Increased to 80px for better spacing between alerts
@@ -120,10 +128,11 @@ const CompactGoalAlert: React.FC<CompactGoalAlertProps> = ({ notification, index
         },
       ]}
     >
-      {/* Main banner - red for goals, grey for cancelled */}
+      {/* Main banner - red for goals, grey for cancelled, dark red for red cards */}
       <View style={[
         styles.alertBanner,
-        isCancelled && styles.cancelledAlertBanner // Grey styling for cancelled goals
+        isCancelled && styles.cancelledAlertBanner, // Grey styling for cancelled goals
+        isRedCard && styles.redCardAlertBanner // Dark red styling for red cards
       ]}>
         {/* Left section: Time and Event (vertical layout) */}
         <View style={styles.leftSection}>
@@ -198,11 +207,28 @@ export default function GoalNotificationOverlay() {
   const { goalNotifications, settings } = useMatchSettings();
 
   useEffect(() => {
-    if (goalNotifications.length > 0 && settings.vibrationEnabled) {
-      // Single vibration for new goal
-      Vibration.vibrate([0, 200]);
+    if (goalNotifications.length > 0) {
+      const latestNotification = goalNotifications[goalNotifications.length - 1];
+      
+      // Play sound based on notification type
+      if (latestNotification.eventType === 'red_card') {
+        // Red card sound
+        playRedCardSound(settings);
+      } else {
+        // Goal sound - determine team based on scorer or use general goal sound
+        const team = latestNotification.scoringTeam || 'general';
+        playGoalSound(team, settings);
+      }
+      
+      // Vibration if enabled
+      if (latestNotification.eventType === 'red_card') {
+        vibrateForRedCard(settings);
+      } else {
+        const team = latestNotification.scoringTeam || 'general';
+        vibrateForGoal(team, settings);
+      }
     }
-  }, [goalNotifications.length]);
+  }, [goalNotifications.length, settings]);
 
   if (!goalNotifications.length || !settings.goalNotification) {
     return null;
@@ -343,5 +369,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#6B7280', // Grey color for cancelled goals
     borderLeftWidth: 4,
     borderLeftColor: '#EF4444', // Red left border to indicate it was a goal that got cancelled
+  },
+  redCardAlertBanner: {
+    backgroundColor: '#991B1B', // Darker red color for red cards
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444', // Red left border to indicate it was a red card
   },
 }); 

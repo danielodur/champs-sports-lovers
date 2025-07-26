@@ -1,17 +1,26 @@
-// Utility functions for user data with proper priority handling
+// Utility functions for user data with Supabase integration
+import { profileService } from '@/services/profileService';
+import { UserProfile } from '@/services/authService';
 
+// Legacy global storage (will be migrated)
 declare global {
   var savedProfileData: any;
 }
 
 /**
- * Get current username with priority:
- * 1. Custom username from personal info (champsUsername)
- * 2. Auth username (if not default)
- * 3. Real name from personal info
- * 4. Default username from auth
+ * Get current username with priority using Supabase profile data
+ * Falls back to legacy method if profile not available
  */
-export const getCurrentUsername = (userInfo?: { username?: string } | null): string => {
+export const getCurrentUsername = (
+  userInfo?: { username?: string } | null, 
+  userProfile?: UserProfile | null
+): string => {
+  // Use profileService method if profile is available
+  if (userProfile !== undefined) {
+    return profileService.getCurrentUsername(userProfile, userInfo);
+  }
+  
+  // Legacy fallback method for backward compatibility
   // Priority 1: Custom username (champsUsername)
   if (global.savedProfileData?.personalInfo?.champsUsername) {
     return global.savedProfileData.personalInfo.champsUsername;
@@ -32,12 +41,19 @@ export const getCurrentUsername = (userInfo?: { username?: string } | null): str
 };
 
 /**
- * Get current profile picture with priority:
- * 1. Saved profile picture from personal info
- * 2. Avatar from auth userInfo
- * 3. Generated avatar using current username
+ * Get current profile picture with priority using Supabase profile data
+ * Falls back to legacy method if profile not available
  */
-export const getCurrentProfilePicture = (userInfo?: { username?: string; avatar?: string } | null): string => {
+export const getCurrentProfilePicture = (
+  userInfo?: { username?: string; avatar?: string } | null,
+  userProfile?: UserProfile | null
+): string => {
+  // Use profileService method if profile is available
+  if (userProfile !== undefined) {
+    return profileService.getCurrentProfilePicture(userProfile, userInfo);
+  }
+  
+  // Legacy fallback method for backward compatibility
   // Priority 1: Saved profile picture
   if (global.savedProfileData?.personalInfo?.profilePicture) {
     return global.savedProfileData.personalInfo.profilePicture;
@@ -57,15 +73,5 @@ export const getCurrentProfilePicture = (userInfo?: { username?: string; avatar?
  * Generate professional realistic avatar using DiceBear adventurer style
  */
 export const generateProfessionalAvatar = (seed: string): string => {
-  // Generate consistent background colors for professional look
-  const backgroundColors = ['ffdfbf', 'f0f0f0', 'e8f4fd', 'fff2e6', 'f8f8ff', 'f0fff0', 'fffacd', 'f5f5dc'];
-  const seedHash = seed.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  const colorIndex = Math.abs(seedHash) % backgroundColors.length;
-  const backgroundColor = backgroundColors[colorIndex];
-  
-  // Use DiceBear adventurer style for realistic professional avatars
-  return `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(seed)}&backgroundColor=${backgroundColor}&size=160`;
+  return profileService.generateProfessionalAvatar(seed);
 };

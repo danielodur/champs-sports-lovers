@@ -39,7 +39,7 @@ interface GoalNotificationData {
   sport: string;
   timestamp: number;
   scoringTeam?: 'home' | 'away';
-  eventType?: 'goal' | 'cancelled';
+  eventType?: 'goal' | 'cancelled' | 'red_card';
   isRealData?: boolean;
 }
 
@@ -113,24 +113,39 @@ export const MatchSettingsProvider: React.FC<MatchSettingsProviderProps> = ({ ch
       if (savedSettings) {
         const parsedSettings = JSON.parse(savedSettings);
         setSettings({ ...defaultSettings, ...parsedSettings });
+        console.log('✅ Match settings loaded successfully');
+      } else {
+        console.log('📋 No saved settings found, using defaults');
+        setSettings(defaultSettings);
       }
     } catch (error) {
-      console.log('Error loading match settings:', error);
+      console.log('❌ Error loading match settings:', error);
+      // Fallback to default settings
+      setSettings(defaultSettings);
     }
   };
 
   const saveSettings = async (newSettings: MatchSettings) => {
     try {
       await AsyncStorage.setItem('matchSettings', JSON.stringify(newSettings));
+      console.log('✅ Match settings saved successfully');
     } catch (error) {
-      console.log('Error saving match settings:', error);
+      console.log('❌ Error saving match settings:', error);
+      // Continue operation even if save fails - don't interrupt user experience
     }
   };
 
   const updateSetting = (key: keyof MatchSettings, value: any) => {
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-    saveSettings(newSettings);
+    try {
+      const newSettings = { ...settings, [key]: value };
+      setSettings(newSettings);
+      saveSettings(newSettings);
+      console.log(`✅ Setting updated: ${key} = ${value}`);
+    } catch (error) {
+      console.error(`❌ Error updating setting ${key}:`, error);
+      // Revert to previous settings if update fails
+      console.log('🔄 Reverting to previous settings');
+    }
   };
 
   const resetSettings = () => {
@@ -141,9 +156,11 @@ export const MatchSettingsProvider: React.FC<MatchSettingsProviderProps> = ({ ch
   const checkNotificationPermission = async (): Promise<boolean> => {
     try {
       const { status } = await Notifications.getPermissionsAsync();
-      return status === 'granted';
+      const isGranted = status === 'granted';
+      console.log(`🔔 Notification permission status: ${status}`);
+      return isGranted;
     } catch (error) {
-      console.log('Error checking notification permission:', error);
+      console.log('❌ Error checking notification permission:', error);
       return false;
     }
   };
@@ -153,10 +170,12 @@ export const MatchSettingsProvider: React.FC<MatchSettingsProviderProps> = ({ ch
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       
       if (existingStatus === 'granted') {
+        console.log('✅ Notification permission already granted');
         return true;
       }
 
       if (existingStatus === 'denied') {
+        console.log('⚠️ Notification permission denied, showing settings prompt');
         Alert.alert(
           'Notifications Required',
           'To receive goal notifications, please enable notifications in your device settings.',
@@ -165,10 +184,14 @@ export const MatchSettingsProvider: React.FC<MatchSettingsProviderProps> = ({ ch
             { 
               text: 'Open Settings', 
               onPress: () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('app-settings:');
-                } else {
-                  Linking.openSettings();
+                try {
+                  if (Platform.OS === 'ios') {
+                    Linking.openURL('app-settings:');
+                  } else {
+                    Linking.openSettings();
+                  }
+                } catch (linkingError) {
+                  console.error('❌ Error opening settings:', linkingError);
                 }
               }
             }
@@ -177,6 +200,7 @@ export const MatchSettingsProvider: React.FC<MatchSettingsProviderProps> = ({ ch
         return false;
       }
 
+      console.log('🔔 Requesting notification permission...');
       const { status } = await Notifications.requestPermissionsAsync({
         ios: {
           allowAlert: true,
@@ -191,9 +215,11 @@ export const MatchSettingsProvider: React.FC<MatchSettingsProviderProps> = ({ ch
         },
       });
 
-      return status === 'granted';
+      const isGranted = status === 'granted';
+      console.log(`🔔 Permission request result: ${status}`);
+      return isGranted;
     } catch (error) {
-      console.log('Error requesting notification permission:', error);
+      console.log('❌ Error requesting notification permission:', error);
       return false;
     }
   };

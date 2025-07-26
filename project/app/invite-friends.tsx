@@ -258,7 +258,7 @@ export default function InviteFriendsScreen() {
             <Text style={styles.bannerSubtitle}>Get Rewards & Watch Matches for Free</Text>
             <View style={styles.bannerDecoration}>
               <Trophy size={24} color="#FFD700" />
-              <Star size={20} color="#FFD700" />
+              <Star size={20} color="#FF4444" />
               <Gift size={22} color="#FFD700" />
             </View>
           </View>
@@ -270,18 +270,34 @@ export default function InviteFriendsScreen() {
             Featuring Top Football Leagues
           </Text>
           <View style={styles.teamsContainer}>
-            {/* Placeholder for team logos */}
-            <View style={styles.teamLogo}>
+            {/* Real Team Logos */}
+            <View style={styles.teamLogoContainer}>
+              <Image 
+                source={{ uri: 'https://mfjxwtlqmvdujxpwnrvf.supabase.co/storage/v1/object/public/team-logos/premier-league/manchester-united.png' }} 
+                style={styles.teamLogoImage}
+              />
               <Text style={styles.teamText}>EPL</Text>
             </View>
-            <View style={styles.teamLogo}>
+            <View style={styles.teamLogoContainer}>
+              <Image 
+                source={{ uri: 'https://mfjxwtlqmvdujxpwnrvf.supabase.co/storage/v1/object/public/team-logos/la-liga/real-madrid.png' }} 
+                style={styles.teamLogoImage}
+              />
               <Text style={styles.teamText}>UCL</Text>
             </View>
-            <View style={styles.teamLogo}>
-              <Text style={styles.teamText}>NFL</Text>
+            <View style={styles.teamLogoContainer}>
+              <Image 
+                source={{ uri: 'https://mfjxwtlqmvdujxpwnrvf.supabase.co/storage/v1/object/public/team-logos/bundesliga/bayern-munich.png' }} 
+                style={styles.teamLogoImage}
+              />
+              <Text style={styles.teamText}>BUN</Text>
             </View>
-            <View style={styles.teamLogo}>
-              <Text style={styles.teamText}>NBA</Text>
+            <View style={styles.teamLogoContainer}>
+              <Image 
+                source={{ uri: 'https://mfjxwtlqmvdujxpwnrvf.supabase.co/storage/v1/object/public/team-logos/serie-a/juventus.png' }} 
+                style={styles.teamLogoImage}
+              />
+              <Text style={styles.teamText}>SER</Text>
             </View>
           </View>
         </View>
@@ -468,13 +484,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
   },
-  teamLogo: {
+  teamLogoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  teamLogoImage: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FF5722',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 4,
   },
   teamText: {
     fontSize: 10,

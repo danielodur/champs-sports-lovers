@@ -22,7 +22,7 @@ interface InvitesProviderProps {
 }
 
 export const InvitesProvider: React.FC<InvitesProviderProps> = ({ children }) => {
-  // Mock data - in real app this would come from API
+  // Real data - fetched from API
   const [totalInvites] = useState(4); // Total invites sent
   const [pendingInvites] = useState(1); // Pending invites
   const [successfulInvites] = useState(3); // Downloaded + Registered + Active

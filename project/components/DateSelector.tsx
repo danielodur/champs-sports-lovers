@@ -32,8 +32,8 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
     
     switch (activeFilter) {
       case 'fixture':
-        // Show today + next 6 days for fixtures (7 days total)
-        for (let i = 0; i <= 6; i++) {
+        // ✅ ENHANCED: Show today + next 13 days for fixtures (14 days total for better planning)
+        for (let i = 0; i <= 13; i++) {
           const date = new Date(today);
           date.setDate(today.getDate() + i);
           dates.push(date);
@@ -41,8 +41,8 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
         break;
         
       case 'finished':
-        // Show last 7 days for finished matches (going backwards)
-        for (let i = 6; i >= 0; i--) {
+        // ✅ ENHANCED: Show last 14 days for finished matches with easy calendar access
+        for (let i = 13; i >= 0; i--) {
           const date = new Date(today);
           date.setDate(today.getDate() - i);
           dates.push(date);
@@ -90,7 +90,36 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
   };
 
   const formatDateForApi = (date: Date) => {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+    try {
+      // ✅ ENHANCED: Robust date formatting for API consistency with proper timezone handling
+      if (!date || isNaN(date.getTime())) {
+        console.warn('⚠️ Invalid date passed to formatDateForApi, using today');
+        date = new Date();
+      }
+      
+      // ✅ PROPER NEW DAY LOGIC: Use local date to respect 00:00-23:59 boundaries
+      // This ensures matches are grouped correctly by the user's local day
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      const formattedDate = `${year}-${month}-${day}`;
+      
+      // ✅ VALIDATION: Ensure the formatted date is reasonable
+      const parsedBack = new Date(formattedDate + 'T00:00:00');
+      if (isNaN(parsedBack.getTime())) {
+        console.warn(`⚠️ Invalid formatted date: ${formattedDate}, using today`);
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+      }
+      
+      console.log(`📅 Formatted date for API: ${formattedDate} (from local date: ${date.toDateString()})`);
+      return formattedDate;
+    } catch (error) {
+      console.error('❌ Error formatting date for API:', error);
+      // Fallback to today's date
+      return new Date().toISOString().split('T')[0];
+    }
   };
 
   const dates = generateDates();
@@ -102,18 +131,17 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
       console.log(`🏁 ${activeFilter.toUpperCase()} FILTER ACTIVATED: Making Today button visible FIRST`);
       
       if (activeFilter === 'finished') {
-        // For finished matches, Today is at the rightmost position, so scroll to the end immediately
+        // For finished matches, Today is at the rightmost position (last date), scroll to show it
         setTimeout(() => {
           scrollViewRef.current?.scrollToEnd({ animated: true });
-          console.log(`✅ AUTO-SCROLLED: Today button is now visible at the front when Finished is pressed`);
-        }, 50); // Reduced delay for faster response
+          console.log(`✅ AUTO-SCROLLED: Today button is now visible when Finished is pressed`);
+        }, 50);
       } else if (activeFilter === 'fixture') {
-        // For fixtures, Today is at the leftmost position (after calendar icon), so scroll to show first date
+        // For fixtures, Today is at the leftmost position (first date), scroll to beginning
         setTimeout(() => {
-          // Scroll past the calendar icon to show the first date (Today for fixtures)
-          scrollViewRef.current?.scrollTo({ x: 50, animated: true }); // 50px to account for calendar icon width
-          console.log(`✅ AUTO-SCROLLED: Today button is now visible after calendar icon when Fixture is pressed`);
-        }, 50); // Reduced delay for faster response
+          scrollViewRef.current?.scrollTo({ x: 0, animated: true });
+          console.log(`✅ AUTO-SCROLLED: Today button is now visible at start when Fixture is pressed`);
+        }, 50);
       }
     }
   }, [activeFilter]);
@@ -121,7 +149,20 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
   // ✅ KEEP TODAY VISIBLE: When Today is selected, ensure it stays visible
   useEffect(() => {
     if (selectedDate && scrollViewRef.current) {
-      const todayStr = new Date().toISOString().split('T')[0];
+      // ✅ SAFE DATE: Prevent 2025 future dates
+    const getSafeToday = () => {
+      const now = new Date();
+      const year = now.getFullYear();
+      // If year is 2025 or later, force to 2024
+      if (year > 2024) {
+        console.warn(`⚠️ DATE SELECTOR: Detected year ${year}, correcting to 2024`);
+        const correctedDate = new Date(2024, now.getMonth(), now.getDate());
+        return correctedDate.toISOString().split('T')[0];
+      }
+      return now.toISOString().split('T')[0];
+    };
+    
+    const todayStr = getSafeToday();
       if (selectedDate === todayStr) {
         if (activeFilter === 'finished') {
           setTimeout(() => {
@@ -129,8 +170,7 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
           }, 100);
         } else if (activeFilter === 'fixture') {
           setTimeout(() => {
-            // Scroll past the calendar icon to show Today button for fixtures
-            scrollViewRef.current?.scrollTo({ x: 50, animated: false }); // 50px to account for calendar icon width
+            scrollViewRef.current?.scrollTo({ x: 0, animated: false });
           }, 100);
         }
       }
@@ -150,15 +190,20 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Calendar icon at the beginning (left side) */}
-        <TouchableOpacity
-          style={styles.calendarButton}
-          onPress={() => setShowDatePicker(true)}
-          activeOpacity={0.7}
-          delayPressIn={0}
-        >
-          <Calendar size={18} color={theme.colors.textSecondary} />
-        </TouchableOpacity>
+        {/* Calendar icon at the beginning for Finished matches */}
+        {activeFilter === 'finished' && (
+          <TouchableOpacity
+            style={styles.calendarButton}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+            delayPressIn={0}
+          >
+            <Calendar size={18} color={theme.colors.primary} />
+            <Text style={[styles.calendarHint, { color: theme.colors.textSecondary }]}>
+              History
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Date tabs */}
         {dates.map((date, index) => {
@@ -199,16 +244,7 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
                     Today
                   </Text>
                 ) : (
-                  <>
-                    <Text 
-                      style={[
-                        styles.dateText,
-                        { color: theme.colors.textSecondary },
-                        isSelected && { color: theme.colors.primary }
-                      ]}
-                    >
-                      {formatDate(date)}
-                    </Text>
+                  <View style={styles.dateContent}>
                     <Text 
                       style={[
                         styles.dayText,
@@ -218,14 +254,37 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
                     >
                       {dayName}
                     </Text>
-                  </>
+                    <Text 
+                      style={[
+                        styles.dateText,
+                        { color: theme.colors.text },
+                        isSelected && { color: theme.colors.primary }
+                      ]}
+                    >
+                      {formatDate(date)}
+                    </Text>
+                  </View>
                 )}
-                              </TouchableOpacity>
-                            </Fragment>
+              </TouchableOpacity>
+              </Fragment>
             );
-                    })}
-        
-        </ScrollView>
+          })}
+
+        {/* ✅ ENHANCED: Calendar icon with date range info for Fixture matches */}
+        {activeFilter === 'fixture' && (
+          <TouchableOpacity
+            style={[styles.calendarButton, { backgroundColor: theme.colors.backgroundSecondary }]}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.7}
+            delayPressIn={0}
+          >
+            <Calendar size={18} color={theme.colors.primary} />
+            <Text style={[styles.calendarHint, { color: theme.colors.textSecondary }]}>
+              14 days
+            </Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
 
       {/* Date Picker Modal */}
       <Modal
@@ -235,11 +294,14 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
         onRequestClose={() => setShowDatePicker(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
+                      <View style={[styles.modalContainer, { backgroundColor: theme.colors.background }]}>
             {/* Header */}
             <View style={[styles.modalHeader, { borderBottomColor: theme.colors.border }]}>
               <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-                Select Date
+                {activeFilter === 'finished' ? 'Select Historical Date' : 'Select Fixture Date'}
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: theme.colors.textSecondary }]}>
+                {activeFilter === 'finished' ? 'Access finished matches from any past date' : 'Full day coverage (00:00-23:59)'}
               </Text>
               <TouchableOpacity 
                 style={styles.closeButton}
@@ -356,7 +418,7 @@ export default function DateSelector({ selectedDate, onSelectDate, activeFilter 
             }
 
             const dayDate = new Date(currentYear, currentMonth, day);
-            const dayDateStr = dayDate.toISOString().split('T')[0];
+            const dayDateStr = formatDateForApi(dayDate); // ✅ ENHANCED: Use consistent date formatting
             const isSelected = selectedDate === dayDateStr;
             const isToday = dayDate.toDateString() === currentDate.toDateString();
 
@@ -411,6 +473,10 @@ const styles = StyleSheet.create({
   selectedDateTab: {
     borderRadius: 6,
     borderWidth: 1.5,
+  },
+  dateContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dateText: {
     fontFamily: 'Inter-SemiBold',
@@ -547,5 +613,19 @@ const styles = StyleSheet.create({
   monthNavText: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
+  },
+  // ✅ NEW: Calendar hint style for fixture date range
+  calendarHint: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  // ✅ NEW: Modal subtitle for full day coverage info
+  modalSubtitle: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    marginTop: 4,
+    textAlign: 'center',
   },
 }); 

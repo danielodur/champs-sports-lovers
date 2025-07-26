@@ -228,9 +228,12 @@ export default function FilterTabs({
                 ]}
               >
                 {tab.label}
-                {tab.id === 'follows' && favoritesCount && favoritesCount > 0 && (
-                  <Text style={[styles.badgeText, { color: theme.colors.primary }]}>
-                    {' '}{favoritesCount}
+                {tab.id === 'follows' && (
+                  <Text style={[styles.badgeText, { 
+                    color: (favoritesCount ?? 0) > 0 ? '#FF4444' : theme.colors.primary,
+                    fontFamily: 'Inter-Bold'
+                  }]}>
+                    {' '}({favoritesCount || 0})
                   </Text>
                 )}
               </Text>

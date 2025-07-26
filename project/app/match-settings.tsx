@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Dimensions, Modal, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Volume2, VolumeX, RotateCcw, Smartphone, ChevronRight } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { useMatchSettings } from '@/contexts/MatchSettingsContext';
+import { testSound, getAvailableSounds } from '@/utils/SoundManager';
 
 const { width } = Dimensions.get('window');
 
@@ -121,15 +122,8 @@ export default function MatchSettingsScreen() {
   const [showSoundModal, setShowSoundModal] = useState(false);
   const [currentSoundType, setCurrentSoundType] = useState('');
 
-  // Sound options
-  const soundOptions = [
-    'Default',
-    'Whistle', 
-    'Drum',
-    'Broadcast',
-    'Horn',
-    'Victory',
-  ];
+  // Sound options - get from SoundManager
+  const soundOptions = getAvailableSounds();
 
   const openSoundModal = (soundType: string) => {
     if (!goalNotification || !soundNotification) return;
@@ -137,19 +131,45 @@ export default function MatchSettingsScreen() {
     setShowSoundModal(true);
   };
 
-  const selectSound = (sound: string) => {
-    switch (currentSoundType) {
-      case 'home':
-        updateSetting('homeTeamSound', sound);
-        break;
-      case 'away':
-        updateSetting('awayTeamSound', sound);
-        break;
-      case 'cancel':
-        updateSetting('goalSound', sound);
-        break;
+  const selectSound = async (sound: string) => {
+    // Test the sound when selecting it
+    try {
+      await testSound(sound);
+      
+      switch (currentSoundType) {
+        case 'home':
+          updateSetting('homeTeamSound', sound);
+          break;
+        case 'away':
+          updateSetting('awayTeamSound', sound);
+          break;
+        case 'cancel':
+          updateSetting('goalSound', sound);
+          break;
+      }
+      setShowSoundModal(false);
+    } catch (error) {
+      console.log('Could not test sound:', error);
+      // Still save the setting even if test fails
+      switch (currentSoundType) {
+        case 'home':
+          updateSetting('homeTeamSound', sound);
+          break;
+        case 'away':
+          updateSetting('awayTeamSound', sound);
+          break;
+        case 'cancel':
+          updateSetting('goalSound', sound);
+          break;
+      }
+      setShowSoundModal(false);
+      
+      Alert.alert(
+        'Sound Test Failed',
+        `Could not test the ${sound} sound, but your selection has been saved.`,
+        [{ text: 'OK' }]
+      );
     }
-    setShowSoundModal(false);
   };
 
   const renderSoundRow = (

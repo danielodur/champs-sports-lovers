@@ -278,38 +278,8 @@ export default function CheckInScreen() {
   ];
 
   React.useEffect(() => {
-    // Pulse animation for check-in button
-    const pulse = () => {
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]).start(() => pulse());
-    };
-
-    // Sparkle animation
-    const sparkle = () => {
-      Animated.sequence([
-        Animated.timing(sparkleAnim, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(sparkleAnim, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]).start(() => sparkle());
-    };
-
+    // Removed continuous pulse and sparkle animations that were causing screen shaking
+    
     // Check initial notification permission
     const checkNotificationPermission = () => {
       if (Platform.OS === 'web' && 'Notification' in window) {
@@ -317,8 +287,6 @@ export default function CheckInScreen() {
       }
     };
 
-    pulse();
-    sparkle();
     checkNotificationPermission();
   }, []);
 
@@ -613,7 +581,7 @@ export default function CheckInScreen() {
             </Text>
             <View style={styles.rewardIcon}>
               {reward.appCoins ? (
-                <Star size={24} color="#FFD700" />
+                <Star size={24} color="#FF4444" />
               ) : (
                 <Coins size={24} color="#FF9800" />
               )}
@@ -640,7 +608,7 @@ export default function CheckInScreen() {
           AppCoins Tasks
         </Text>
         <View style={styles.starIcon}>
-          <Star size={20} color="#FFD700" />
+          <Star size={20} color="#FF4444" />
         </View>
       </View>
       

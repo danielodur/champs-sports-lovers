@@ -1,13 +1,14 @@
-# dependencies
+# Node dependencies
 node_modules/
 
-# expo
+# Expo / React Native
 .expo/
+.expo-shared/
 dist/
 web-build/
 expo-env.d.ts
 
-# native
+# Native / Mobile
 *.orig.*
 *.jks
 *.p8
@@ -15,21 +16,25 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# metro
+# Metro
 .metro-health-check*
 
-# debug
+# Debug logs
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macos
+# macOS / OS junk
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+# Environment variables
 .env
+.env.*.local
+.env.local
 
-# typescript
+# TypeScript cache
 *.tsbuildinfo
+
+# VS Code settings (optional, helps teammates)
+.vscode/

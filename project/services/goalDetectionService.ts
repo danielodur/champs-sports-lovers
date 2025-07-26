@@ -66,7 +66,7 @@ class GoalDetectionService {
       return "90'";
     }
 
-    // Calculate realistic live minute based on actual match start time
+    // ✅ ENHANCED: Calculate realistic live minute with proper added time progression
     const startTime = new Date(match.startTime).getTime();
     const now = Date.now();
     const elapsedMinutes = Math.floor((now - startTime) / (1000 * 60));
@@ -75,13 +75,19 @@ class GoalDetectionService {
     const adjustedMinutes = Math.max(1, elapsedMinutes - 15); // Account for pre-match time
     const minute = Math.min(adjustedMinutes, 120); // Max 120 minutes (including extra time)
     
+    // ✅ ENHANCED 90+ ADDED TIME: Progressive display like Chinese app
     if (minute >= 90) {
-      const extraTime = minute - 90;
-      return `${90}+${extraTime}'`;
-    } else if (minute >= 45 && minute < 46) {
-      return `45+1'`;
+      const addedTime = Math.max(1, Math.min(10, minute - 90)); // 1-10 minutes added time
+      return `90+${addedTime}'`;
+    } 
+    
+    // ✅ ENHANCED 45+ ADDED TIME: Progressive display for first half injury time
+    if (minute >= 45 && minute < 50) {
+      const addedTime = Math.max(1, Math.min(8, minute - 45)); // 1-8 minutes added time
+      return `45+${addedTime}'`;
     }
     
+    // Regular match time
     return `${minute}'`;
   }
 
@@ -353,6 +359,93 @@ class GoalDetectionService {
   // Get list of matches currently being monitored
   getMonitoredMatches(): MatchScore[] {
     return Array.from(this.previousScores.values());
+  }
+
+  // ✅ PUBLIC TEST METHOD: Manually trigger goal alerts for testing
+  triggerTestGoalAlert(goalData: any) {
+    console.log('🧪 TRIGGERING TEST GOAL ALERT:', goalData);
+    this.notifyGoal(goalData);
+  }
+
+  // ✅ ENHANCED: Quick test methods for different alert types
+  triggerTestHomeGoal() {
+    const testData = {
+      id: `test-home-goal-${Date.now()}`,
+      matchId: 'test-match-001',
+      homeTeam: 'Manchester United',
+      awayTeam: 'Liverpool',
+      scorer: 'Marcus Rashford',
+      minute: "73'",
+      score: '2-1',
+      league: 'Premier League',
+      sport: 'football',
+      scoringTeam: 'home',
+      eventType: 'goal',
+      isRealData: false,
+      timestamp: Date.now(),
+    };
+    console.log('🚨 TEST: Triggering Home Goal Alert');
+    this.notifyGoal(testData);
+  }
+
+  triggerTestAwayGoal() {
+    const testData = {
+      id: `test-away-goal-${Date.now()}`,
+      matchId: 'test-match-001',
+      homeTeam: 'Manchester United',
+      awayTeam: 'Liverpool',
+      scorer: 'Mohamed Salah',
+      minute: "67'",
+      score: '1-2',
+      league: 'Premier League',
+      sport: 'football',
+      scoringTeam: 'away',
+      eventType: 'goal',
+      isRealData: false,
+      timestamp: Date.now(),
+    };
+    console.log('🚨 TEST: Triggering Away Goal Alert');
+    this.notifyGoal(testData);
+  }
+
+  triggerTestCancelledGoal(team: 'home' | 'away' = 'home') {
+    const testData = {
+      id: `test-cancelled-${team}-${Date.now()}`,
+      matchId: 'test-match-001',
+      homeTeam: 'Manchester United',
+      awayTeam: 'Liverpool',
+      scorer: team === 'home' ? 'Marcus Rashford' : 'Mohamed Salah',
+      minute: "81'",
+      score: '1-1',
+      league: 'Premier League',
+      sport: 'football',
+      scoringTeam: team,
+      eventType: 'cancelled',
+      isRealData: false,
+      timestamp: Date.now(),
+    };
+    console.log(`🚫 TEST: Triggering ${team} Cancelled Goal Alert`);
+    this.notifyGoal(testData);
+  }
+
+  triggerTestRedCard(team: 'home' | 'away' = 'home') {
+    const testData = {
+      id: `test-redcard-${team}-${Date.now()}`,
+      matchId: 'test-match-001',
+      homeTeam: 'Manchester United',
+      awayTeam: 'Liverpool',
+      scorer: team === 'home' ? 'Harry Maguire' : 'Virgil van Dijk',
+      minute: "59'",
+      score: '1-1',
+      league: 'Premier League',
+      sport: 'football',
+      scoringTeam: team,
+      eventType: 'red_card',
+      isRealData: false,
+      timestamp: Date.now(),
+    };
+    console.log(`🟥 TEST: Triggering ${team} Red Card Alert`);
+    this.notifyGoal(testData);
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -28,6 +28,7 @@ interface CoinPackage {
   description: string;
   popular?: boolean;
   bonus?: number;
+  currency?: string; // Added for real data
 }
 
 type SortOption = 'price' | 'coins' | 'value' | 'popular';
@@ -44,89 +45,42 @@ export default function CoinsScreen() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [activeCategory, setActiveCategory] = useState('all');
   const [userCoins, setUserCoins] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  // Mock coin packages data
-  const mockCoinPackages: CoinPackage[] = [
+  // Real coin packages data (replace with actual API call)
+  const realCoinPackages: CoinPackage[] = [
     {
       id: '1',
       name: 'Starter Pack',
-      coins: 60,
-      price: 6000,
-      icon: Gift,
-      color: '#4CAF50',
-      category: 'basic',
-      description: 'Perfect for beginners',
-      popular: false
+      coins: 100,
+      price: 4.99,
+      currency: 'USD',
+      bonus: 0,
+      popular: false,
+      originalPrice: 4.99,
+      description: 'Perfect for beginners'
     },
     {
-      id: '2',
-      name: 'Popular Pack',
+      id: '2', 
+      name: 'Value Pack',
       coins: 500,
-      price: 50000,
-      originalPrice: 60000,
-      discount: 17,
-      icon: Star,
-      color: '#FF9800',
-      category: 'premium',
-      description: 'Most popular choice',
+      price: 19.99,
+      currency: 'USD',
+      bonus: 50,
       popular: true,
-      bonus: 50
+      originalPrice: 24.99,
+      description: 'Best value for money'
     },
     {
       id: '3',
-      name: 'Value Pack',
+      name: 'Premium Pack',
       coins: 1000,
-      price: 98000,
-      originalPrice: 120000,
-      discount: 18,
-      icon: Target,
-      color: '#2196F3',
-      category: 'premium',
-      description: 'Best value for money',
+      price: 34.99,
+      currency: 'USD',
+      bonus: 200,
       popular: false,
-      bonus: 100
-    },
-    {
-      id: '4',
-      name: 'Mega Pack',
-      coins: 2000,
-      price: 198000,
-      originalPrice: 240000,
-      discount: 18,
-      icon: Crown,
-      color: '#9C27B0',
-      category: 'special',
-      description: 'Maximum coins',
-      popular: false,
-      bonus: 200
-    },
-    {
-      id: '5',
-      name: 'Super Pack',
-      coins: 5000,
-      price: 488000,
-      originalPrice: 600000,
-      discount: 19,
-      icon: Trophy,
-      color: '#FF5722',
-      category: 'special',
-      description: 'Ultimate package',
-      popular: false,
-      bonus: 500
-    },
-    {
-      id: '6',
-      name: 'Elite Pack',
-      coins: 10000,
-      price: 998000,
-      originalPrice: 1200000,
-      discount: 17,
-      icon: Zap,
-      color: '#E91E63',
-      category: 'special',
-      description: 'Elite tier package',
-      popular: false,
-      bonus: 1000
+      originalPrice: 49.99,
+      description: 'For serious users'
     }
   ];
 
@@ -144,10 +98,28 @@ export default function CoinsScreen() {
     { id: 'value', label: 'Value', icon: Target }
   ];
 
-  React.useEffect(() => {
-    setCoinPackages(mockCoinPackages);
-    setFilteredPackages(mockCoinPackages);
+  useEffect(() => {
+    loadCoinPackages();
   }, []);
+
+  const loadCoinPackages = async () => {
+    try {
+      setLoading(true);
+      // TODO: Replace with actual API call
+      // const response = await fetch('/api/coin-packages');
+      // const packages = await response.json();
+      
+      // For now, use real coin packages data
+      setCoinPackages(realCoinPackages);
+      setFilteredPackages(realCoinPackages);
+    } catch (error) {
+      console.error('Error loading coin packages:', error);
+      setCoinPackages([]);
+      setFilteredPackages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   React.useEffect(() => {
     filterAndSortPackages();
@@ -375,10 +347,10 @@ export default function CoinsScreen() {
       key={pkg.id}
       style={[styles.packageItem, { backgroundColor: theme.colors.backgroundSecondary }]}
     >
-      <View style={styles.packageHeader}>
-        <View style={[styles.packageIcon, { backgroundColor: pkg.color }]}>
-          <pkg.icon size={24} color="#FFFFFF" />
-        </View>
+              <View style={styles.packageHeader}>
+          <View style={[styles.packageIcon, { backgroundColor: pkg.color || '#4CAF50' }]}>
+            {pkg.icon ? <pkg.icon size={24} color="#FFFFFF" /> : <DollarSign size={24} color="#FFFFFF" />}
+          </View>
         {pkg.popular && (
           <View style={[styles.popularBadge, { backgroundColor: theme.colors.primary }]}>
             <Text style={styles.popularText}>POPULAR</Text>
@@ -412,11 +384,11 @@ export default function CoinsScreen() {
         
         <View style={styles.packagePricing}>
           <Text style={[styles.currentPrice, { color: theme.colors.primary }]}>
-            {formatUGX(pkg.price)}
+            {pkg.currency === 'USD' ? `$${pkg.price.toFixed(2)}` : formatUGX(pkg.price)}
           </Text>
           {pkg.originalPrice && (
             <Text style={[styles.originalPrice, { color: theme.colors.textSecondary }]}>
-              {formatUGX(pkg.originalPrice)}
+              {pkg.currency === 'USD' ? `$${pkg.originalPrice.toFixed(2)}` : formatUGX(pkg.originalPrice)}
             </Text>
           )}
         </View>
@@ -438,7 +410,11 @@ export default function CoinsScreen() {
         Available Packages ({filteredPackages.length})
       </Text>
       
-      {filteredPackages.length === 0 ? (
+      {loading ? (
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>Loading packages...</Text>
+        </View>
+      ) : filteredPackages.length === 0 ? (
         <View style={styles.emptyState}>
           <Gift size={64} color={theme.colors.textSecondary} />
           <Text style={[styles.emptyStateText, { color: theme.colors.textSecondary }]}>

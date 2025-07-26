@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Bell, Settings, CircleAlert as AlertCircle } from 'lucide-react-native';
@@ -55,8 +55,17 @@ export default function NotificationSettingsScreen() {
       }
     } catch (error) {
       console.log('Could not open settings:', error);
-      // Fallback to requesting permission
-      await requestPermission();
+      try {
+        // Fallback to requesting permission
+        await requestPermission();
+      } catch (permissionError) {
+        console.error('Error requesting notification permission:', permissionError);
+        Alert.alert(
+          'Settings Error',
+          'Could not open notification settings. Please manually enable notifications in your device settings.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 

@@ -23,24 +23,64 @@ export default function LoginScreen() {
       Alert.alert(t('Error'), t('Please enter both username and password'));
       return;
     }
-    console.log('Login pressed with:', { username, password });
-    // Set logged in state with user info - generate professional Dicebear avatar
-    const finalUsername = username || 'DefaultUser123';
-    const backgroundColors = ['ffdfbf', 'f0f0f0', 'e8f4fd', 'fff2e6', 'f8f8ff', 'f0fff0', 'fffacd', 'f5f5dc'];
-    const seedHash = finalUsername.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    const colorIndex = Math.abs(seedHash) % backgroundColors.length;
-    const backgroundColor = backgroundColors[colorIndex];
-    const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(finalUsername)}&backgroundColor=${backgroundColor}&size=160`;
     
-    setLoggedIn(true, {
-      username: finalUsername,
-      avatar: avatarUrl
-    });
-    // Navigate to profile tab to show signed-in state
-    router.replace('/(tabs)/profile');
+    try {
+      console.log('Login pressed with:', { username, password });
+      
+      // Set logged in state with user info - generate professional Dicebear avatar
+      const finalUsername = username || 'DefaultUser123';
+      const backgroundColors = ['ffdfbf', 'f0f0f0', 'e8f4fd', 'fff2e6', 'f8f8ff', 'f0fff0', 'fffacd', 'f5f5dc'];
+      const seedHash = finalUsername.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      const colorIndex = Math.abs(seedHash) % backgroundColors.length;
+      const backgroundColor = backgroundColors[colorIndex];
+      const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(finalUsername)}&backgroundColor=${backgroundColor}&size=160`;
+      
+      // ✅ CRITICAL FIX: Set authentication state BEFORE navigation
+      console.log('🔐 Setting authentication state...');
+      setLoggedIn(true, {
+        username: finalUsername,
+        avatar: avatarUrl
+      });
+      
+      console.log('✅ Login successful, preparing navigation...');
+      console.log('📝 User data set:', { username: finalUsername, avatar: avatarUrl });
+      
+      // ✅ ENHANCED NAVIGATION: Multiple navigation attempts with different strategies
+      const navigateToProfile = () => {
+        try {
+          console.log('🚀 Attempting navigation to profile...');
+          
+          // Strategy 1: Replace with specific tab path
+          router.replace('/(tabs)/profile');
+          
+          // Strategy 2: Fallback after delay
+          setTimeout(() => {
+            router.replace('/(tabs)/profile');
+            console.log('🔄 Fallback navigation executed');
+          }, 200);
+          
+          console.log('✅ Navigation commands executed');
+        } catch (navError) {
+          console.error('❌ Navigation error:', navError);
+          
+          // Strategy 3: Emergency fallback
+          setTimeout(() => {
+            router.push('/(tabs)/profile');
+            console.log('🆘 Emergency navigation executed');
+          }, 500);
+        }
+      };
+      
+      // Execute navigation immediately
+      navigateToProfile();
+      
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      Alert.alert(t('Error'), 'Login failed. Please try again.');
+    }
   };
 
   const handleRecoverAccount = () => {

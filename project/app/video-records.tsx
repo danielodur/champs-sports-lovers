@@ -205,8 +205,7 @@ export default function VideoRecordsScreen() {
           style={[
             styles.searchInput,
             { 
-              color: theme.colors.text,
-              ...Platform.select({ web: { outlineStyle: 'none' } })
+              color: theme.colors.text
             }
           ]}
           placeholder="Search video records..."
@@ -269,7 +268,7 @@ export default function VideoRecordsScreen() {
         </TouchableOpacity>
         {video.isFavorite && (
           <View style={styles.favoriteIndicator}>
-            <Star size={16} color="#FFD700" fill="#FFD700" />
+            <Star size={16} color="#FF4444" fill="#FF4444" />
           </View>
         )}
       </View>

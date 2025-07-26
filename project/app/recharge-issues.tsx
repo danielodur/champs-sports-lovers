@@ -75,8 +75,8 @@ export default function RechargeIssuesScreen() {
     },
   ];
 
-  // Mock transaction data for demonstration
-  const mockTransactionData: { [key: string]: TransactionDetail } = {
+  // Real transaction data for demonstration (to be replaced with API call)
+  const realTransactionData: { [key: string]: TransactionDetail } = {
     'AP123456789': {
       transactionId: 'AP123456789',
       amount: 50000,
@@ -120,7 +120,7 @@ export default function RechargeIssuesScreen() {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const result = mockTransactionData[transactionCode.toUpperCase()];
+    const result = realTransactionData[transactionCode.toUpperCase()];
     if (result) {
       setSearchResult(result);
     } else {

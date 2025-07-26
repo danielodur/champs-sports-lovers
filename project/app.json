@@ -15,13 +15,28 @@
       "**/*"
     ],
     "extra": {
-      "rapidApiKey": "e78f756777msh75b3850f0f66d39p128d74jsn1701b20ca5c7",
+      "rapidApiKey": "EXPO_PUBLIC_RAPID_API_KEY_PRO",
       "apiFootballHost": "api-football-v1.p.rapidapi.com",
-      "newsApiKey": "",
-      "environment": "production",
+      "newsDataApiKey": "EXPO_PUBLIC_NEWSDATA.IO_API_KEY",
+      "guardianApiKey": "EXPO_PUBLIC_GUARDIAN_API_KEY",
+      "gNewsApiKey": "EXPO_PUBLIC_GNEWS_API_KEY",
+      "mediaStackApiKey": "EXPO_PUBLIC_MEDIASTACK_API_KEY",
+      "footballDataApiKey": "EXPO_PUBLIC_FOOTBALL_DATA.ORG_API",
+      "sportRadarApiKey": "EXPO_PUBLIC_SPORTRADAR_API_KEY",
+      "environment": "development",
       "enableRealData": true,
       "useMockData": false,
-      "sportRadarApiKey": "XGaGvZ8R72y110rTQqxLhykH5PGLJw96ImZwv44L"
+      "apiRateLimit": "conservative",
+      "cacheEnabled": true,
+      "mockFallbackEnabled": false,
+      "supabaseUrl": "EXPO_PUBLIC_SUPABASE_URL",
+      "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id"
+      }
     },
     "ios": {
       "supportsTablet": true,

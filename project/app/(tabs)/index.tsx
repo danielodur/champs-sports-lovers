@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar, ScrollView, Animated, Alert, Dimensions, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, StatusBar, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Clock } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import { useFavorites } from '@/hooks/useFavorites';
@@ -10,12 +9,45 @@ import SportsTabs from '@/components/SportsTabs';
 import FilterTabs from '@/components/FilterTabs';
 import DateSelector from '@/components/DateSelector';
 import MatchList from '@/components/MatchList';
-import ThemeAwareHeader from '@/components/ThemeAwareHeader';
-import { fetchMatches } from '@/services/matchService';
+import ConsecutiveStatsButton from '@/components/ConsecutiveStatsButton';
+
+import { fetchMatches, preloadMatchData } from '@/services/matchService';
 import goalDetectionService from '@/services/goalDetectionService';
 import { useMatchSettings } from '@/contexts/MatchSettingsContext';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// ✅ DATE VALIDATION: Accept valid future dates (including 2025)
+const validateAndCorrectDate = (dateString: string): string => {
+  const inputDate = new Date(dateString);
+  
+  // Only reject truly invalid dates, not future dates
+  if (isNaN(inputDate.getTime())) {
+    console.warn('⚠️ DATE FIX: Invalid date detected, using current date');
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }
+  
+  // Accept all valid dates including future years (2025, etc.)
+  return dateString;
+};
+
+// ✅ SAFE DATE GENERATOR: Always returns a valid current date
+const getSafeCurrentDate = (): string => {
+  try {
+    const now = new Date();
+    const dateString = now.toISOString().split('T')[0];
+    
+    // Validate the generated date (now accepts future dates)
+    const validatedDate = validateAndCorrectDate(dateString);
+    console.log(`📅 SAFE DATE: Generated ${validatedDate} (original: ${dateString})`);
+    
+    return validatedDate;
+  } catch (error) {
+    console.error('❌ Date generation failed, using fallback:', error);
+    // Ultimate fallback - use actual current date
+    const now = new Date();
+    return now.toISOString().split('T')[0];
+  }
+};
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -28,136 +60,140 @@ export default function HomeScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortMode, setSortMode] = useState('time');
   const [displayMode, setDisplayMode] = useState('score');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getSafeCurrentDate());
   const [matchCount, setMatchCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [currentMatches, setCurrentMatches] = useState<any[]>([]);
   
-  // ✅ ZERO-JUMP NAVIGATION: No animations, always visible
-  const fadeAnim = useRef(new Animated.Value(1)).current; // Always visible
-  
-  // ✅ INSTANT SPORTS NAVIGATION: Handle incoming sport parameter from Top screen
+
+
+  // ✅ GLOBAL REFRESH FUNCTION: Allow match-details to trigger refreshes
   useEffect(() => {
-    // Check if sport parameter was passed from Top screen
+    (global as any).refreshMatchLists = () => {
+      console.log('🔄 GLOBAL REFRESH: Refreshing all match lists from match-details');
+      setRefreshKey(prev => prev + 1);
+      refreshFavoritesCount();
+    };
+    
+    return () => {
+      delete (global as any).refreshMatchLists;
+    };
+  }, [refreshFavoritesCount]);
+
+  // Handle incoming sport parameter from Top screen
+  useEffect(() => {
     if (params.sport && typeof params.sport === 'string') {
-      console.log('✅ INSTANT TOP NAVIGATION: Received sport parameter:', params.sport);
-      
-      // ✅ ZERO-DELAY SPORT UPDATE: Instant sport change, no jumping
+      console.log('✅ Navigation from Top screen - setting sport:', params.sport);
       setActiveSport(params.sport);
-      
-      // Clear the parameter to prevent re-triggering
       router.setParams({ sport: undefined });
-      
-      console.log('✅ INSTANT SPORT SET:', params.sport);
     }
   }, [params.sport]);
   
-  // ✅ GOAL DETECTION AUTO-START: Ensure goal monitoring is active for live matches
+  // Goal detection and background refresh service startup
   useEffect(() => {
-    console.log('🚨 HOME SCREEN: Ensuring goal detection is active for real-time alerts');
+    console.log('🚨 Ensuring goal detection is active');
     
     if (!goalDetectionService.isMonitoringActive()) {
       goalDetectionService.startMonitoring();
-      console.log('🔄 Goal detection service started from Home screen');
     }
     
-    // Auto-refresh live matches every 30 seconds to catch score changes
-    const liveMatchInterval = setInterval(async () => {
-      if (activeSport === 'football') {
-        try {
-          const liveMatches = await fetchMatches('football', 'live');
-          if (liveMatches.length > 0) {
-            console.log(`🔄 Auto-updating ${liveMatches.length} live matches for goal detection`);
-            goalDetectionService.updateMatches(liveMatches);
-          }
-        } catch (error) {
-          console.log('❌ Error in auto-refresh for goal detection:', error);
-        }
+    // ✅ START BACKGROUND REFRESH SERVICE
+    const initializeServices = async () => {
+      try {
+        console.log('⚡ HOME SCREEN: Starting background refresh service...');
+        
+        // Start background refresh service
+        const { backgroundRefreshService } = await import('@/services/backgroundRefreshService');
+        backgroundRefreshService.startBackgroundRefresh();
+        
+        // Initial data preload
+        preloadMatchData().catch(error => {
+          console.log('⚠️ Preloading failed but continuing:', error);
+        });
+        
+        console.log('✅ Background services initialized');
+      } catch (error) {
+        console.log('⚠️ Service initialization failed:', error);
       }
-    }, 30000); // Every 30 seconds
+    };
+
+    initializeServices();
     
+    // Cleanup function
     return () => {
-      clearInterval(liveMatchInterval);
+      // Stop background refresh when component unmounts
+      const stopServices = async () => {
+        try {
+          const { backgroundRefreshService } = await import('@/services/backgroundRefreshService');
+          backgroundRefreshService.stopBackgroundRefresh();
+        } catch (error) {
+          console.log('⚠️ Service cleanup failed:', error);
+        }
+      };
+      stopServices();
     };
   }, [activeSport]);
-  
-  // ✅ NO ENTRANCE ANIMATIONS: Instant visibility for zero jumping
-  useEffect(() => {
-    // 🎯 ALWAYS VISIBLE: No fade-in animations to prevent jumping
-    fadeAnim.setValue(1);
-    console.log('✅ HOME SCREEN: Always visible, no animations');
-  }, []);
-  
-  console.log('🚨 HOME SCREEN RENDERING IN TABS LAYOUT');
-  console.log('🏈 HOME SCREEN - Active sport:', activeSport);
-
-  // ✅ REMOVED PARAMETER HANDLING - No more jumping from state conflicts
-  // Direct navigation eliminates need for parameter-based sport changes
 
   const handleSportChange = (sport: string) => {
-    console.log('🏈 HOME SCREEN - Sport changing from', activeSport, 'to', sport);
+    console.log('🏈 Sport changing from', activeSport, 'to', sport);
     
-    // Handle "important" (Top) tab selection - zero-jump navigation to Top screen
     if (sport === 'important') {
-      console.log('⚡ INSTANT ZERO-JUMP navigation to Top screen');
-      
-      // ✅ IMMEDIATE NAVIGATION - Remove setTimeout for instant response
-      router.replace('/top');
+      console.log('⚡ ZERO JUMPING: Navigating to Top screen');
+      router.push('/top');
       return;
     }
     
-    // ✨ FOOTBALL BUTTON OPTIMIZATION: Beautiful state transition
-    if (sport === 'football') {
-      console.log('⚽ FOOTBALL BUTTON: Beautiful entrance with zero jumping');
-    }
-    
-    // ✅ IMMEDIATE STATE UPDATE: No delays for instant visual feedback
     setActiveSport(sport);
   };
 
-  // ✅ FORCE TODAY'S MATCHES: When Finished or Fixture filter is selected, immediately force Today's date and matches
+  // Force today's date for finished/fixture filters with validation
   useEffect(() => {
     if (activeFilter === 'finished' || activeFilter === 'fixture') {
-      const todayStr = new Date().toISOString().split('T')[0];
-      console.log(`🏁 ${activeFilter.toUpperCase()} FILTER PRESSED: MUST show TODAY button and TODAY'S matches FIRST`);
-      console.log(`🔥 FORCING: Today button must be visible and selected immediately`);
-      console.log(`📍 REQUIREMENT: Today button and Today's screen must be the FIRST thing user sees`);
-      
-      // Force immediate update to today's date - this MUST make Today visible first
-      setSelectedDate(todayStr);
+      const safeToday = getSafeCurrentDate();
+      console.log(`🏁 ${activeFilter.toUpperCase()} filter - using safe date: ${safeToday}`);
+      setSelectedDate(safeToday);
     }
   }, [activeFilter]);
 
-  // Refresh favorites count when user switches to or is on the Follows tab
+  // ✅ CORRECTED: Only refresh count when follows tab is activated (NO AUTO-CLEARING)
   useEffect(() => {
     if (activeFilter === 'follows') {
+      console.log('⭐ FOLLOWS TAB: Refreshing count without clearing data...');
+      
+      // ✅ CORRECT BEHAVIOR: Only refresh the count, never clear user data
       refreshFavoritesCount();
-      
-      const interval = setInterval(() => {
-        refreshFavoritesCount();
-      }, 2000);
-      
-      return () => clearInterval(interval);
     }
   }, [activeFilter, refreshFavoritesCount]);
 
-  // Create the sort indicator text
   const getSortIndicatorText = () => {
     if (activeFilter === 'follows') {
       return '⭐ Your Favorite Matches';
     }
     
     if (sortMode === 'league') {
-      return '🏆 Sorted by League'; // Higher ranking leagues first
+      return '🏆 Sorted by League';
     } else {
-      return '⏰ Sorted by Time'; // Chronological order
+      return '⏰ Sorted by Time';
     }
   };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Clear caches and fetch fresh data
-      await fetchMatches(activeSport, activeFilter, selectedDate);
+      console.log(`🔄 Refreshing ${activeFilter} matches for ${activeSport}`);
+      
+      // Force refresh through background service
+      const { backgroundRefreshService } = await import('@/services/backgroundRefreshService');
+      const freshMatches = await backgroundRefreshService.forceRefresh(activeFilter);
+      
+      // Update current matches state
+      setCurrentMatches(freshMatches);
+      
+      // Also trigger the increment of refresh key to update MatchList
+      setRefreshKey(prev => prev + 1);
+      
+      console.log(`✅ Refresh completed: ${freshMatches.length} matches`);
     } catch (error) {
       console.error('Refresh error:', error);
     } finally {
@@ -165,71 +201,85 @@ export default function HomeScreen() {
     }
   }, [activeSport, activeFilter, selectedDate]);
 
+  // Determine if DateSelector should be sticky (for Fixture and Finished screens)
+  const shouldUseStickyDateSelector = activeFilter === 'fixture' || activeFilter === 'finished';
 
+  // Create the date selector as a header component for non-sticky screens
+  const renderDateSelectorHeader = useCallback(() => (
+    <DateSelector
+      selectedDate={selectedDate}
+      onSelectDate={setSelectedDate}
+      activeFilter={activeFilter}
+    />
+  ), [selectedDate, activeFilter]);
 
   return (
     <>
       <StatusBar barStyle={theme.colors.background === '#FFFFFF' ? 'dark-content' : 'light-content'} backgroundColor={theme.colors.backgroundSecondary} translucent />
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]} edges={['top']}>
-        <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
-                     <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[theme.colors.primary]}
-                tintColor={theme.colors.primary}
-              />
-            }
-            showsVerticalScrollIndicator={false}
-          >
-                         <View style={styles.content}>
-               <SportsTabs
-                active={activeSport}
-                onSelect={handleSportChange}
-              />
-              
-              <FilterTabs
-                active={activeFilter}
-                onSelect={setActiveFilter}
-                currentSport={activeSport}
-                onSortChange={setSortMode}
-                onDisplayModeChange={setDisplayMode}
-                favoritesCount={favoritesCount}
-                currentSortMode={sortMode}
-              />
-              
-              {/* Sort indicator connected to FilterTabs */}
-              <View style={[styles.sortIndicator, { borderBottomColor: theme.colors.border }]}>
-                <Text style={[styles.sortText, { color: theme.colors.textSecondary }]}>
-                  {getSortIndicatorText()}
-                </Text>
-                <Text style={[styles.matchCountText, { color: theme.colors.primary }]}>
-                  {matchCount} matches
-                </Text>
-              </View>
-              
-              <DateSelector
-                selectedDate={selectedDate}
-                onSelectDate={setSelectedDate}
-                activeFilter={activeFilter}
-              />
-              
-              <MatchList
-                sport={activeSport}
-                filter={activeFilter}
-                sortMode={sortMode}
-                displayMode={displayMode}
-                selectedDate={selectedDate}
-                onFavoritesChange={refreshFavoritesCount}
-                onMatchCountChange={setMatchCount}
-                hideSortIndicator={true}
-              />
-            </View>
-          </ScrollView>
-        </Animated.View>
+        
+        {/* Sports Tabs */}
+        <View style={[styles.sportsSection, { backgroundColor: theme.colors.backgroundSecondary }]}>
+          <SportsTabs
+            active={activeSport}
+            onSelect={handleSportChange}
+          />
+        </View>
+
+        {/* Filter Tabs */}
+        <View style={[styles.filterSection, { backgroundColor: theme.colors.backgroundSecondary }]}>
+          <FilterTabs
+            active={activeFilter}
+            onSelect={setActiveFilter}
+            currentSport={activeSport}
+            onSortChange={setSortMode}
+            onDisplayModeChange={setDisplayMode}
+            favoritesCount={favoritesCount}
+            currentSortMode={sortMode}
+          />
+          
+          <View style={[styles.sortIndicator, { borderBottomColor: theme.colors.border }]}>
+            <Text style={[styles.sortText, { color: theme.colors.textSecondary }]}>
+              {getSortIndicatorText()}
+            </Text>
+            <Text style={[styles.matchCountText, { color: theme.colors.primary }]}>
+              {matchCount} matches
+            </Text>
+          </View>
+        </View>
+
+        {/* Sticky Date Selector for Fixture and Finished screens */}
+        {shouldUseStickyDateSelector && (
+          <View style={[styles.stickyDateSelector, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+            <DateSelector
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              activeFilter={activeFilter}
+            />
+          </View>
+        )}
+
+        {/* Match List - restored to original layout */}
+        <MatchList
+          key={refreshKey}
+          sport={activeSport}
+          filter={activeFilter}
+          sortMode={sortMode}
+          displayMode={displayMode}
+          selectedDate={selectedDate}
+          onFavoritesChange={refreshFavoritesCount}
+          onMatchCountChange={setMatchCount}
+          hideSortIndicator={true}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          headerComponent={shouldUseStickyDateSelector ? undefined : renderDateSelectorHeader}
+          onMatchesLoaded={setCurrentMatches}
+        />
+
+        {/* Small Red Button for Consecutive Stats - Only on All and Live screens */}
+        {(activeFilter === 'all' || activeFilter === 'live') && (
+          <ConsecutiveStatsButton />
+        )}
       </SafeAreaView>
     </>
   );
@@ -239,19 +289,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    paddingBottom: 100, // Space for bottom tabs
-  },
-
   sportsSection: {
-    paddingVertical: 8,
+    height: 60,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -261,7 +300,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  stickySection: {
+  filterSection: {
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -287,18 +326,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-SemiBold',
   },
-  fixedDateLayout: {
-    flex: 1,
-  },
-  fixedDateSelector: {
-    padding: 16,
+  stickyDateSelector: {
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    zIndex: 5, // Ensure it stays above the match list
   },
-  scrollableMatches: {
-    flex: 1,
-  },
-  scrollableMatchesContent: {
-    paddingBottom: 100, // Account for bottom tab bar
-  },
+
 });

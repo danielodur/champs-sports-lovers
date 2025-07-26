@@ -286,6 +286,52 @@ export default function ProfileScreen() {
   const { t } = useTranslation();
   const { isLoggedIn, userInfo, initializeAuth } = useAuth();
 
+  // ✅ DEBUG: Log authentication state changes
+  useEffect(() => {
+    console.log('🔐 Profile Screen - Auth State Changed:', { isLoggedIn, userInfo });
+    if (isLoggedIn && userInfo) {
+      console.log('✅ User is authenticated:', userInfo.username);
+    } else {
+      console.log('❌ User is not authenticated, showing login button');
+    }
+  }, [isLoggedIn, userInfo]);
+
+  // ✅ ENHANCED: Monitor and recover from auth state issues
+  useEffect(() => {
+    console.log('🔍 Profile Screen - Full Auth State:', { 
+      isLoggedIn, 
+      userInfo, 
+      hasUser: !!userInfo,
+      username: userInfo?.username,
+      avatar: userInfo?.avatar 
+    });
+    
+    // ✅ RECOVERY: Handle edge cases where auth state might be corrupted
+    if (isLoggedIn && !userInfo) {
+      console.warn('⚠️ Auth state inconsistency detected - user is logged in but no userInfo');
+      console.log('🔧 Attempting to re-initialize auth...');
+      
+      // Try to re-initialize authentication
+      setTimeout(() => {
+        initializeAuth();
+      }, 1000);
+    }
+  }, [isLoggedIn, userInfo, initializeAuth]);
+
+  // ✅ ENHANCED: Handle login button press with better error handling
+  const handleLoginPress = () => {
+    try {
+      console.log('🔐 Login button pressed - navigating to login screen');
+      router.push('/login-register');
+    } catch (error) {
+      console.error('❌ Login navigation error:', error);
+      // Fallback navigation
+      setTimeout(() => {
+        router.replace('/login-register');
+      }, 100);
+    }
+  };
+
   // User data with system generated values
   const [userData, setUserData] = useState({
     champsId: generateChampsId(),
@@ -760,24 +806,24 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: '#4A4A4A' }]} edges={['top']}>
       <ScrollView 
-        style={styles.scrollView} 
+        style={[styles.scrollView, { backgroundColor: '#4A4A4A' }]} 
         showsVerticalScrollIndicator={false}
         scrollEnabled={true}
         bounces={true}
         scrollEventThrottle={16}
         decelerationRate="normal"
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, backgroundColor: '#4A4A4A' }}
         keyboardShouldPersistTaps="handled"
       >
         {/* Main Profile Background */}
         <View style={[styles.profileBackground, { 
           backgroundColor: '#4A4A4A',
-          marginTop: -16,
-          paddingTop: 16,
+          marginTop: 0,
+          paddingTop: 8,
         }]}>
-          {/* Top Icons inside red background */}
+          {/* Top Icons inside grey background */}
           <View style={styles.topIcons}>
             {/* Hamburger Menu Icon */}
             <TouchableOpacity 
@@ -836,6 +882,8 @@ export default function ProfileScreen() {
                       <Text style={styles.usernameText}>
                         {getCurrentUsername(userInfo)}
                       </Text>
+                      
+
                       
                       {/* Jersey Icon next to username */}
                       <TouchableOpacity
@@ -970,7 +1018,7 @@ export default function ProfileScreen() {
                 </View>
                 <TouchableOpacity 
                   style={[styles.loginButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
-                  onPress={() => router.push('/login-register')}
+                  onPress={handleLoginPress}
                   activeOpacity={0.7}
                 >
                   <LogIn size={16} color="#FFFFFF" />
@@ -1370,9 +1418,11 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 0,
     padding: 0,
+    backgroundColor: '#4A4A4A', // Ensure container is always grey
   },
   scrollView: {
     flex: 1,
+    backgroundColor: '#4A4A4A', // Ensure scroll view is grey
   },
   topIcons: {
     flexDirection: 'row',
@@ -1381,6 +1431,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
+    backgroundColor: '#4A4A4A', // Ensure top icons area is grey
   },
   topRightIcons: {
     flexDirection: 'row',
@@ -1398,20 +1449,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     position: 'relative',
     minHeight: 80,
+    backgroundColor: '#4A4A4A', // Ensure header is grey
   },
   profileBackground: {
-    paddingTop: 0,
+    paddingTop: 8,
     paddingBottom: 55,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
     backgroundColor: '#4A4A4A',
     marginTop: 0,
     marginHorizontal: 0,
+    width: '100%', // Ensure full width coverage
   },
   profileSection: {
     alignItems: 'flex-start',
     paddingHorizontal: 20,
     paddingTop: 30,
+    backgroundColor: '#4A4A4A', // Ensure profile section is grey
   },
   avatarContainer: {
     width: 90,
@@ -2534,4 +2588,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     color: '#FFFFFF',
   },
+
 });

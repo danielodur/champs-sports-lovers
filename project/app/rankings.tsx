@@ -228,6 +228,82 @@ export default function RankingsScreen() {
     }
   };
 
+  // Helper function to format team names with smart word breaking
+  const formatTeamName = (teamName: string) => {
+    if (!teamName) return 'Team';
+    
+    const cleanName = teamName.trim();
+    
+    // CRITICAL: If name is longer than 13 characters, ALWAYS break or abbreviate
+    if (cleanName.length > 13) {
+      // Check if the name might be concatenated words
+      const smartSplit = (name: string): string[] => {
+        const patterns = [
+          /([A-Z][a-z]+)([A-Z][a-z]+)/g,
+          /(san|new|los|las|st|mount|fort)([A-Z][a-z]+)/gi,
+          /(duque)([A-Z][a-z]+)/gi,
+          /(real|fc|ac|sc)([A-Z][a-z]+)/gi,
+        ];
+        
+        for (const pattern of patterns) {
+          const match = name.match(pattern);
+          if (match) {
+            const words = name.replace(/([a-z])([A-Z])/g, '$1 $2').split(' ');
+            if (words.length > 1 && words.every(word => word.length > 1)) {
+              return words;
+            }
+          }
+        }
+        
+        return name.split(/\s+/);
+      };
+      
+      const words = smartSplit(cleanName);
+      
+      if (words.length === 1) {
+        // Single long word - truncate with ellipsis (rankings need compact display)
+        return cleanName.substring(0, 12) + '...';
+      }
+      
+      if (words.length >= 2) {
+        const [firstWord, secondWord, ...remainingWords] = words;
+        
+        // Check for geographic names
+        const geographic = ['san', 'new', 'los', 'las', 'st.', 'st', 'mount', 'fort', 'real', 'duque'];
+        const isGeographic = geographic.some(geo => 
+          firstWord.toLowerCase().includes(geo) || secondWord.toLowerCase().includes(geo)
+        );
+        
+        if (isGeographic) {
+          const geographicBase = firstWord + ' ' + secondWord;
+          if (remainingWords.length === 0) {
+            return geographicBase.length > 13 ? geographicBase.substring(0, 12) + '...' : geographicBase;
+          }
+          // Add first letter of remaining words
+          const abbreviated = remainingWords.map(w => w.charAt(0).toUpperCase()).join('');
+          const result = geographicBase + ' ' + abbreviated;
+          return result.length > 13 ? result.substring(0, 12) + '...' : result;
+        }
+        
+        // Standard case - try to fit first two words, abbreviate rest
+        if (remainingWords.length > 0) {
+          const abbreviated = remainingWords.map(w => w.charAt(0).toUpperCase()).join('');
+          const result = firstWord + ' ' + secondWord + ' ' + abbreviated;
+          return result.length > 13 ? result.substring(0, 12) + '...' : result;
+        }
+        
+        // Just two words
+        const result = firstWord + ' ' + secondWord;
+        return result.length > 13 ? result.substring(0, 12) + '...' : result;
+      }
+      
+      return cleanName.substring(0, 12) + '...';
+    }
+    
+    // Name is 13 characters or less - keep as is
+    return cleanName;
+  };
+
   const renderHeader = () => (
     <View style={[styles.header, { backgroundColor: theme.colors.backgroundSecondary }]}>
       <TouchableOpacity 
@@ -283,7 +359,6 @@ export default function RankingsScreen() {
             styles.searchInput,
             { 
               color: theme.colors.text,
-              ...Platform.select({ web: { outlineStyle: 'none' } })
             }
           ]}
           placeholder={t('searchTeamsPlayersLeagues')}
@@ -362,7 +437,7 @@ export default function RankingsScreen() {
           <View style={styles.teamInfo}>
             <Image source={{ uri: team.logo }} style={styles.teamLogo} />
             <Text style={[styles.teamName, { color: theme.colors.text }]} numberOfLines={1}>
-              {team.team}
+              {formatTeamName(team.team)}
             </Text>
           </View>
           

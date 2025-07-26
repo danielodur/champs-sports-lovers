@@ -8,9 +8,10 @@ import {
   Dimensions,
   Platform,
   Pressable,
-  Animated,
   StatusBar,
-  TouchableOpacity
+  TouchableOpacity,
+  UIManager,
+  InteractionManager
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -32,16 +33,17 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Match } from '@/types/match';
-import { fetchHotMatches } from '@/services/matchService';
+import { fetchHotMatches, fetchMatches } from '@/services/matchService';
 import MatchItem from '@/components/MatchItem';
 import SportsTabs from '@/components/SportsTabs';
 import { useFavorites } from '@/hooks/useFavorites';
 import MatchList from '@/components/MatchList';
-import { fetchMatches } from '@/services/matchService';
+
 import goalDetectionService from '@/services/goalDetectionService';
 import { useMatchSettings } from '@/contexts/MatchSettingsContext';
+import teamLogoService from '@/services/teamLogoService';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface TopCategory {
   id: string;
@@ -62,51 +64,35 @@ export default function TopScreen() {
   const theme = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [selectedCategory, setSelectedCategory] = useState('live');
   const [matches, setMatches] = useState<Match[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const { addFavorite, removeFavorite } = useFavorites();
+  const { addFavorite, removeFavorite, refreshFavoritesCount } = useFavorites();
   const { showGoalNotification } = useMatchSettings();
   
-  // ✨ BEAUTIFUL ENTRANCE: Modern app-style fade-in animation
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  
+  // ✅ COMPLETE ANIMATION DISABLE: Turn off ALL React Native animations
   useEffect(() => {
-    // 🎨 TWITTER-STYLE ENTRANCE: Smooth fade-in on mount
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    if (Platform.OS === 'android') {
+      UIManager.setLayoutAnimationEnabledExperimental && UIManager.setLayoutAnimationEnabledExperimental(false);
+    }
   }, []);
 
-  // ✅ GOAL DETECTION AUTO-START: Ensure goal monitoring is active for live matches on Top screen
+  // ✅ INSTANT DATA LOAD: Load without any delays
   useEffect(() => {
-    console.log('🚨 TOP SCREEN: Ensuring goal detection is active for real-time alerts');
-    
+    // Use InteractionManager to prevent any layout conflicts
+    InteractionManager.runAfterInteractions(() => {
+      loadTopMatches();
+    });
+  }, [selectedCategory]); 
+
+  // ✅ GOAL DETECTION: Setup once without layout impact
+  useEffect(() => {
     if (!goalDetectionService.isMonitoringActive()) {
       goalDetectionService.startMonitoring();
-      console.log('🔄 Goal detection service started from Top screen');
     }
-    
-    // Auto-refresh live matches every 30 seconds to catch score changes
-    const liveMatchInterval = setInterval(async () => {
-      try {
-        const liveMatches = await fetchMatches('football', 'live');
-        if (liveMatches.length > 0) {
-          console.log(`🔄 Top screen auto-updating ${liveMatches.length} live matches for goal detection`);
-          goalDetectionService.updateMatches(liveMatches);
-        }
-      } catch (error) {
-        console.log('❌ Top screen error in auto-refresh for goal detection:', error);
-      }
-    }, 30000); // Every 30 seconds
-    
-    return () => {
-      clearInterval(liveMatchInterval);
-    };
-  }, []);
+  }, []); 
   
   const tabButtons: TabButton[] = [
     { key: 'home', title: 'Home', icon: Home, route: '/' },
@@ -121,29 +107,29 @@ export default function TopScreen() {
       id: 'live',
       title: 'Live Now',
       icon: Play,
-      sport: 'all',
+      sport: 'football',
       description: 'Live top matches happening now'
     },
     {
       id: 'upcoming',
       title: 'Upcoming',
       icon: Clock,
-      sport: 'all',
+      sport: 'football',
       description: 'Top upcoming matches'
     },
     {
       id: 'uganda',
-      title: 'Uganda Premier League',
+      title: 'Ugandan Premier League',
       icon: Trophy,
       sport: 'football',
-      description: 'Uganda\'s top football league'
+      description: 'Uganda\'s top football league (Currently in off-season)'
     },
     {
       id: 'premier',
-      title: 'Premier League',
+      title: 'English Premier League', 
       icon: Trophy,
       sport: 'football',
-      description: 'England\'s top football league'
+      description: 'England\'s top football league (Currently in off-season)'
     },
     {
       id: 'champions',
@@ -163,291 +149,286 @@ export default function TopScreen() {
       id: 'finished',
       title: 'Latest Results',
       icon: Flag,
-      sport: 'all',
+      sport: 'football',
       description: 'Recent top match results'
     }
   ];
 
-  // ✅ ZERO-JUMP Navigation (Completely immediate, no delays)
-  const handleSportChange = (sport: string) => {
+  // ✅ INSTANT NAVIGATION: Zero transition time
+  const handleSportChange = useCallback((sport: string) => {
     if (sport !== 'important') {
-      console.log(`⚡ INSTANT ZERO-JUMP: Top → Home with sport: ${sport}`);
-      
-      // ✅ BEAUTIFUL SPORTS NAVIGATION: Pass sport parameter to prevent jumping
-      router.replace({
-        pathname: '/(tabs)',
-        params: { sport: sport }
-      });
+      // Use setTimeout with 0 to ensure instant execution without blocking
+      setTimeout(() => {
+        router.replace({
+          pathname: '/(tabs)',
+          params: { sport: sport }
+        });
+      }, 0);
     }
-  };
+  }, [router]);
 
-  // ✅ ZERO-JUMP TAB NAVIGATION
-  const handleTabPress = (route: string) => {
-    console.log(`⚡ INSTANT ZERO-JUMP tab: Top → ${route}`);
-    
-    // ✅ IMMEDIATE NAVIGATION - Remove setTimeout for instant response
-    router.replace(route);
-  };
+  // ✅ INSTANT TAB NAVIGATION: Zero delay
+  const handleTabPress = useCallback((route: string) => {
+    setTimeout(() => {
+      router.replace(route);
+    }, 0);
+  }, [router]);
 
-  // ✅ COMPREHENSIVE TOP MATCHES FILTER: Include ALL countries' leagues and international matches
-  const isTopMatch = (match: any): boolean => {
-    const league = match.league?.toLowerCase() || '';
-    const country = match.country?.toLowerCase() || '';
-    const homeTeam = match.home?.name?.toLowerCase() || '';
-    const awayTeam = match.away?.name?.toLowerCase() || '';
-    
-    // ✅ INTERNATIONAL COMPETITIONS (ALL should be included)
-    const internationalKeywords = [
-      'world cup', 'euro', 'copa america', 'afcon', 'asian cup', 'afc', 'uefa',
-      'nations league', 'confederation cup', 'olympics', 'olympic', 'continental',
-      'international', 'friendly', 'qualifier', 'qualification', 'qualifying',
-      'under-21', 'under-20', 'under-19', 'under-17', 'under-16', 'u21', 'u20', 'u19', 'u17', 'u16',
-      'youth', 'junior', 'women', 'female', 'ladies', 'feminino', 'femminile',
-      'champions league', 'europa league', 'europa conference', 'libertadores', 'sudamericana',
-      'caf champions', 'caf confederation', 'concacaf', 'asian champions', 'oceania',
-      'club world cup', 'intercontinental', 'super cup', 'supercup', 'uefa super'
-    ];
-    
-    // ✅ LEAGUE KEYWORDS (ANY league from ANY country)
-    const leagueKeywords = [
-      'league', 'liga', 'serie', 'division', 'bundesliga', 'ligue', 'premier',
-      'primera', 'segunda', 'tercera', 'championship', 'superliga', 'premiership',
-      'primera división', 'segunda división', 'pro league', 'super league',
-      'national league', 'regional league', 'state league', 'provincial league',
-      // ✅ ASIAN SPECIFIC LEAGUES (for matches like in screenshot)
-      '超', '甲', '乙', '丙', '联赛', 'j联赛', 'k联赛', 'chinese super', 'lebanon', 'lebanese'
-    ];
-    
-    // ✅ CUP KEYWORDS (ANY cup from ANY country)
-    const cupKeywords = [
-      'cup', 'copa', 'coupe', 'pokal', 'trophy', 'trofeo', 'trophée',
-      'championship', 'tournoi', 'torneo', 'tournament', 'competition',
-      'kings cup', 'fa cup', 'league cup', 'capital one', 'carabao',
-      'dfb pokal', 'coppa italia', 'coupe de france', 'copa del rey',
-      'scottish cup', 'irish cup', 'welsh cup', 'community shield',
-      // ✅ ASIAN SPECIFIC CUPS (for matches like in screenshot)
-      '杯', '总统杯', '亚洲杯', '越南杯', '马总统杯', 'asian cup', 'vietnam cup', 'malaysia cup'
-    ];
-    
-    // ✅ MAJOR COUNTRIES WITH MULTIPLE TIERS
-    const majorCountriesLeagues = {
-      // UK (England, Scotland, Wales, Northern Ireland)
-      'england': ['premier league', 'championship', 'league one', 'fa cup', 'league cup', 'community shield'],
-      'scotland': ['premiership', 'championship', 'league one', 'scottish cup', 'league cup'],
-      'wales': ['premier league', 'championship', 'welsh cup', 'welsh league'],
-      
-      // Germany
-      'germany': ['bundesliga', '2. bundesliga', '3. liga', 'dfb pokal', 'supercup'],
-      'deutschland': ['bundesliga', '2. bundesliga', '3. liga', 'dfb pokal'],
-      
-      // Spain
-      'spain': ['la liga', 'segunda', 'segunda división', 'copa del rey', 'supercopa'],
-      'españa': ['primera', 'segunda', 'copa del rey', 'supercopa'],
-      
-      // Italy
-      'italy': ['serie a', 'serie b', 'coppa italia', 'supercoppa italiana'],
-      'italia': ['serie a', 'serie b', 'coppa italia', 'supercoppa'],
-      
-      // France
-      'france': ['ligue 1', 'ligue 2', 'championnat national', 'coupe de france', 'coupe de la ligue'],
-      
-      // Other major countries
-      'brazil': ['série a', 'série b', 'série c', 'copa do brasil', 'supercopa'],
-      'argentina': ['primera división', 'primera b', 'copa argentina', 'supercopa'],
-      'netherlands': ['eredivisie', 'eerste divisie', 'knvb beker'],
-      'portugal': ['primeira liga', 'segunda liga', 'taça de portugal'],
-      'russia': ['premier league', 'first league', 'cup of russia'],
-      'turkey': ['süper lig', 'tff first league', 'turkish cup'],
-      'mexico': ['liga mx', 'ascenso mx', 'copa mx'],
-      'usa': ['mls', 'usl championship', 'us open cup'],
-      'japan': ['j1 league', 'j2 league', 'j3 league', 'emperor cup'],
-      'south korea': ['k league 1', 'k league 2', 'fa cup'],
-      'china': ['super league', 'league one', 'fa cup'],
-      'australia': ['a-league', 'ffa cup', 'npl'],
-      'india': ['super league', 'i-league', 'federation cup']
-    };
-    
-    // ✅ CHECK INTERNATIONAL MATCHES
-    const isInternational = internationalKeywords.some(keyword => 
-      league.includes(keyword) || 
-      homeTeam.includes(keyword) || 
-      awayTeam.includes(keyword) ||
-      match.tournament?.toLowerCase().includes(keyword)
-    );
-    
-    // ✅ CHECK LEAGUE MATCHES (ANY country's league)
-    const isLeague = leagueKeywords.some(keyword => league.includes(keyword));
-    
-    // ✅ CHECK CUP MATCHES (ANY country's cup)
-    const isCup = cupKeywords.some(keyword => league.includes(keyword));
-    
-    // ✅ CHECK MAJOR COUNTRIES SPECIFIC LEAGUES
-    const isMajorCountryMatch = Object.entries(majorCountriesLeagues).some(([countryName, leagues]) => {
-      const isFromCountry = country.includes(countryName) || league.includes(countryName);
-      const isTopTierInCountry = leagues.some(leagueName => league.includes(leagueName));
-      return isFromCountry && isTopTierInCountry;
-    });
-    
-    // ✅ SPECIAL CHECKS FOR SPECIFIC REGIONS
-    
-    // African competitions and leagues
-    const isAfricanMatch = league.includes('caf') || 
-                          country.includes('africa') || 
-                          league.includes('african') ||
-                          ['egypt', 'morocco', 'tunisia', 'algeria', 'nigeria', 'ghana', 'cameroon', 
-                           'senegal', 'ivory coast', 'south africa', 'uganda', 'kenya', 'tanzania',
-                           'ethiopia', 'zambia', 'zimbabwe', 'mali', 'burkina faso'].some(africanCountry => 
-                            country.includes(africanCountry) || league.includes(africanCountry));
-    
-    // Asian competitions and leagues
-    const isAsianMatch = league.includes('afc') || 
-                        league.includes('asian') ||
-                        country.includes('asia') ||
-                        ['china', 'japan', 'south korea', 'thailand', 'vietnam', 'malaysia', 'singapore',
-                         'indonesia', 'philippines', 'india', 'saudi arabia', 'uae', 'qatar', 'iran',
-                         'iraq', 'lebanon', 'jordan', 'uzbekistan', 'kazakhstan'].some(asianCountry => 
-                          country.includes(asianCountry) || league.includes(asianCountry));
-    
-    // American competitions and leagues
-    const isAmericanMatch = league.includes('concacaf') || 
-                           league.includes('conmebol') ||
-                           ['usa', 'canada', 'mexico', 'brazil', 'argentina', 'chile', 'colombia',
-                            'uruguay', 'peru', 'ecuador', 'venezuela', 'bolivia', 'paraguay'].some(americanCountry => 
-                             country.includes(americanCountry) || league.includes(americanCountry));
-    
-    // European competitions and leagues (comprehensive)
-    const isEuropeanMatch = league.includes('uefa') || 
-                           ['england', 'spain', 'italy', 'germany', 'france', 'netherlands', 'portugal',
-                            'belgium', 'scotland', 'turkey', 'russia', 'ukraine', 'poland', 'czech',
-                            'austria', 'switzerland', 'denmark', 'sweden', 'norway', 'croatia',
-                            'serbia', 'greece', 'romania', 'bulgaria', 'hungary', 'slovakia'].some(europeanCountry => 
-                             country.includes(europeanCountry) || league.includes(europeanCountry));
-    
-    console.log(`🏆 MATCH ANALYSIS: ${match.home?.name} vs ${match.away?.name}`);
-    console.log(`   League: "${league}"`);
-    console.log(`   Country: "${country}"`);
-    console.log(`   International: ${isInternational}, League: ${isLeague}, Cup: ${isCup}`);
-    console.log(`   Major Country: ${isMajorCountryMatch}, African: ${isAfricanMatch}, Asian: ${isAsianMatch}`);
-    console.log(`   American: ${isAmericanMatch}, European: ${isEuropeanMatch}`);
-    
-    // ✅ INCLUDE ALL QUALIFYING MATCHES
-    return isInternational || 
-           isLeague || 
-           isCup || 
-           isMajorCountryMatch || 
-           isAfricanMatch || 
-           isAsianMatch || 
-           isAmericanMatch || 
-           isEuropeanMatch;
-  };
+  // ✅ INSTANT MATCH NAVIGATION: Zero delay
+  const handleMatchPress = useCallback((match: Match) => {
+    setTimeout(() => {
+      router.push({
+        pathname: '/match-details',
+        params: {
+          matchId: match.id,
+          homeTeam: match.home.name,
+          awayTeam: match.away.name,
+          homeScore: match.score.split('-')[0]?.trim() || '0',
+          awayScore: match.score.split('-')[1]?.trim() || '0',
+          status: match.status,
+          startTime: match.startTime,
+          league: match.league,
+          // ✅ PASS RANKING DATA: Include team rankings for match details
+          homeRank: match.home.rank?.toString() || '',
+          awayRank: match.away.rank?.toString() || '',
+          from: 'top'
+        }
+      });
+    }, 0);
+  }, [router]);
 
-  // ✅ INSTANT match loading with zero delays
+  // ✅ STABLE DATA LOADING: No layout changes during load
   const loadTopMatches = useCallback(async () => {
     try {
-      console.log(`⚡ INSTANT CATEGORY SWITCH: ${selectedCategory}`);
+      // Don't set loading to prevent layout changes
+      let matches: Match[] = [];
       
-      // ✅ NO LOADING STATE - Instant display with pre-cached data
-      const allMatches = await fetchHotMatches(selectedCategory as 'live' | 'upcoming' | 'premier' | 'champions' | 'nba' | 'finished' | 'uganda');
+      switch (selectedCategory) {
+        case 'live':
+          matches = await fetchMatches('football', 'live');
+          break;
+        case 'upcoming':
+          matches = await fetchMatches('football', 'fixture'); // Use 'fixture' for consistency
+          break;
+        case 'finished':
+          matches = await fetchMatches('football', 'finished');
+          break;
+        case 'premier':
+          // ✅ FIXED: Get all current matches and filter for ENGLISH Premier League only
+          const allPremierMatches = await fetchMatches('football', 'all');
+          const { leagueNormalizationService } = await import('@/services/leagueNormalizationService');
+          matches = leagueNormalizationService.filterMatchesForTopCategory(allPremierMatches, 'premier');
+          console.log(`🏆 English Premier League: Found ${matches.length} matches from ${allPremierMatches.length} total`);
+          break;
+        case 'champions':
+          // ✅ FIXED: Get all current matches and filter for Champions League
+          const allChampionsMatches = await fetchMatches('football', 'all');
+          matches = allChampionsMatches.filter(match => 
+            match.league.toLowerCase().includes('champions league') ||
+            match.league.toLowerCase().includes('uefa champions') ||
+            match.league.toLowerCase().includes('ucl')
+          );
+          console.log(`🏆 Champions League: Found ${matches.length} matches from ${allChampionsMatches.length} total`);
+          break;
+        case 'nba':
+          matches = await fetchMatches('basketball', 'all');
+          break;
+        case 'uganda':
+          // ✅ FIXED: Get all current matches and filter for UGANDAN Premier League only
+          const allUgandaMatches = await fetchMatches('football', 'all');
+          const { leagueNormalizationService: ugandaService } = await import('@/services/leagueNormalizationService');
+          matches = ugandaService.filterMatchesForTopCategory(allUgandaMatches, 'uganda');
+          console.log(`🇺🇬 Ugandan Premier League: Found ${matches.length} matches from ${allUgandaMatches.length} total`);
+          break;
+        default:
+          // Fallback to fetching hot matches for unknown categories
+          const validCategories: Array<'live' | 'upcoming' | 'premier' | 'champions' | 'nba' | 'finished' | 'uganda'> = 
+            ['live', 'upcoming', 'premier', 'champions', 'nba', 'finished', 'uganda'];
+          if (validCategories.includes(selectedCategory as any)) {
+            matches = await fetchHotMatches(selectedCategory as 'live' | 'upcoming' | 'premier' | 'champions' | 'nba' | 'finished' | 'uganda');
+          } else {
+            console.warn(`⚠️ Unknown category: ${selectedCategory}, showing empty results`);
+            matches = [];
+          }
+      }
       
-      // ✅ FILTER FOR TOP MATCHES ONLY: Elite leagues, top countries, international matches
-      const shouldFilterTopMatches = ['live', 'upcoming', 'finished'].includes(selectedCategory);
-      const topMatches = shouldFilterTopMatches 
-        ? allMatches.filter(isTopMatch) 
-        : allMatches; // League-specific categories show all matches from that league
+      // Enhance matches with team logos
+      const enhancedMatches = matches.map(match => ({
+        ...teamLogoService.enhanceMatchWithLogos(match),
+        isFavorite: match.isFavorite || false
+      }));
       
-      console.log(`🏆 TOP MATCHES FILTER: ${topMatches.length} top-tier matches from ${allMatches.length} total matches (Category: ${selectedCategory})`);
+      // Update goal detection for live matches
+      const liveMatches = enhancedMatches.filter(match => match.status === 'live');
+      if (liveMatches.length > 0) {
+        goalDetectionService.updateMatches(liveMatches);
+      }
       
-      // ✅ FOR LIVE MATCHES: If filtered results are too few, show more matches
-      const hotMatches = selectedCategory === 'live' && topMatches.length < 5 
-        ? allMatches // Show ALL live matches if top filter gives too few results
-        : topMatches;
-      
-      console.log(`🔴 LIVE MATCHES FINAL: ${hotMatches.length} matches will be displayed (Original: ${allMatches.length}, Top: ${topMatches.length})`);
-
-      // ✅ LIVE NOW CHRONOLOGICAL SORTING - Early matches first, latest matches last
-      hotMatches.sort((a, b) => {
-        const statusOrder = { 'live': 1, 'upcoming': 2, 'finished': 3 };
-        const statusDiff = (statusOrder[a.status] || 4) - (statusOrder[b.status] || 4);
-        
-        if (statusDiff !== 0) return statusDiff;
-        
-        // ✅ LIVE MATCHES: Sort by start time (early matches at top)
-        if (a.status === 'live' && b.status === 'live') {
-          const timeA = new Date(a.startTime).getTime();
-          const timeB = new Date(b.startTime).getTime();
-          console.log(`🔴 LIVE SORTING: ${a.home.name} vs ${a.away.name} (${new Date(a.startTime).toLocaleTimeString()}) vs ${b.home.name} vs ${b.away.name} (${new Date(b.startTime).toLocaleTimeString()})`);
-          return timeA - timeB; // Earlier matches first (chronological order)
-        }
-        
-        // For non-live matches, sort by league priority then time
-        const leaguePriority = (league: string): number => {
-          if (league.includes('Premier League')) return 1;
-          if (league.includes('Champions')) return 2;
-          if (league.includes('La Liga')) return 3;
-          if (league.includes('NBA')) return 1;
-          if (league.includes('Serie A')) return 4;
-          if (league.includes('Bundesliga')) return 5;
-          return 10;
-        };
-        
-        const leagueDiff = leaguePriority(a.league) - leaguePriority(b.league);
-        if (leagueDiff !== 0) return leagueDiff;
-        
-        // Within same league, sort by time
-        const timeA = new Date(a.startTime).getTime();
-        const timeB = new Date(b.startTime).getTime();
-        return timeA - timeB; // Chronological order
-      });
-
-      // ✅ INSTANT STATE UPDATE - Zero delay display
-      setMatches(hotMatches);
-      setLoading(false); // Always set loading to false immediately
-      console.log(`⚡ INSTANT LOADED ${hotMatches.length} matches for: ${selectedCategory}`);
+      // ✅ INSTANT STATE UPDATE: Single update to prevent layout shifts
+      setMatches(enhancedMatches);
       
     } catch (error) {
-      console.error('Error loading top matches:', error);
+      console.error('❌ Error loading matches:', error);
       setMatches([]);
-      setLoading(false); // Ensure loading is always false
     }
   }, [selectedCategory]);
 
-  useEffect(() => {
-    // ✅ INSTANT DATA LOAD - no delays
-    loadTopMatches();
-  }, [selectedCategory]); // Only depend on category change for faster updates
+  // ✅ STABLE SORTING: No layout changes
+  const sortTopMatches = useCallback((matches: Match[]): Match[] => {
+    if (matches.length === 0) return matches;
+    
+    return [...matches].sort((a, b) => {
+        // ✅ CRITICAL FIX: Live matches sorted by MATCH PROGRESSION first
+        const aIsLive = a.status === 'live';
+        const bIsLive = b.status === 'live';
+        
+        // Live matches always come first
+        if (aIsLive && !bIsLive) return -1;
+        if (bIsLive && !aIsLive) return 1;
+        
+        // For live matches, sort by match progression (higher minutes first)
+        if (aIsLive && bIsLive) {
+          const getMatchMinute = (match: Match): number => {
+            if (match.time) {
+              if (match.time.includes('+')) {
+                // For "90+10", extract the base minute (90) and add extra time
+                const parts = match.time.split('+');
+                const basePart = parseInt(parts[0]) || 0;
+                const extraPart = parseInt(parts[1]) || 0;
+                return basePart + (extraPart * 0.1); // 90+10 becomes 91.0
+              } else if (!isNaN(parseInt(match.time))) {
+                return parseInt(match.time);
+              }
+            }
+            // Fallback to statusText parsing
+            if (match.statusText) {
+              if (match.statusText.includes('+')) {
+                const parts = match.statusText.split('+');
+                const basePart = parseInt(parts[0]) || 0;
+                const extraPart = parseInt(parts[1]) || 0;
+                return basePart + (extraPart * 0.1);
+              } else {
+                const minuteMatch = match.statusText.match(/\d+/);
+                return minuteMatch ? parseInt(minuteMatch[0]) : 0;
+              }
+            }
+            return 0;
+          };
+          
+          const minuteA = getMatchMinute(a);
+          const minuteB = getMatchMinute(b);
+          
+          // ✅ PRIMARY SORT: By match progression (higher minutes first)
+          if (minuteA !== minuteB) {
+            return minuteB - minuteA; // 90+10 before 12', 12' before 6'
+          }
+          
+          // If same minute, fall through to league priority
+        }
 
-  const handleRefresh = async () => {
+        const statusPriority = { 'live': 1, 'upcoming': 2, 'finished': 3 };
+        const statusDiff = (statusPriority[a.status] || 4) - (statusPriority[b.status] || 4);
+        if (statusDiff !== 0) return statusDiff;
+
+        const leaguePriority = (league: string): number => {
+          const priorities = {
+            'UEFA Champions League': 1, 'Premier League': 2, 'La Liga': 3, 'Bundesliga': 4, 'Serie A': 5, 'Ligue 1': 6,
+            'Europa League': 7, 'Europa Conference League': 8,
+            'Eredivisie': 9, 'Primeira Liga': 10, 'Belgium Pro League': 11,
+            'Uganda Premier League': 12, 'MLS': 13, 'NBA': 14,
+            'Default': 999
+          };
+          
+          for (const [key, priority] of Object.entries(priorities)) {
+            if (league.toLowerCase().includes(key.toLowerCase())) {
+              return priority;
+            }
+          }
+          return priorities['Default'];
+        };
+
+        const leaguePriorityDiff = leaguePriority(a.league) - leaguePriority(b.league);
+        if (leaguePriorityDiff !== 0) return leaguePriorityDiff;
+
+        const timeA = new Date(a.startTime).getTime();
+        const timeB = new Date(b.startTime).getTime();
+        
+        if (a.status === 'finished') {
+          return timeB - timeA;
+        } else {
+          return timeA - timeB;
+        }
+    });
+  }, []);
+
+  const sortedMatches = useMemo(() => sortTopMatches(matches), [matches, sortTopMatches]);
+
+  // ✅ STABLE REFRESH: No layout changes
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadTopMatches();
     setRefreshing(false);
-  };
+  }, [loadTopMatches]);
 
-  const toggleFavorite = async (matchId: string) => {
+  // ✅ INSTANT FAVORITE TOGGLE: No layout shifts
+  const toggleFavorite = useCallback(async (matchId: string) => {
     try {
-      const match = matches.find(m => m.id === matchId);
-      if (!match) return;
-
-      if (match.isFavorite) {
-        await removeFavorite(matchId);
-      } else {
-        await addFavorite(match);
+      if (!matchId || typeof matchId !== 'string' || matchId.trim() === '') {
+        return;
       }
 
-      setMatches(prev => 
-        prev.map(m => 
-          m.id === matchId 
-            ? { ...m, isFavorite: !m.isFavorite } 
-            : m
+      const match = matches.find(m => m.id === matchId);
+      if (!match || !match.home?.name || !match.away?.name) {
+        return;
+      }
+
+      const originalFavoriteStatus = match.isFavorite;
+      const targetFavoriteStatus = !originalFavoriteStatus;
+
+      // ✅ INSTANT UI UPDATE: Immediate visual feedback
+      setMatches(prevMatches =>
+        prevMatches.map(m =>
+          m.id === matchId ? { ...m, isFavorite: targetFavoriteStatus } : m
         )
       );
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
-  };
 
-  const renderCategoryButton = (category: TopCategory) => {
+      // Perform backend operation
+      const success = originalFavoriteStatus 
+        ? await removeFavorite(matchId)
+        : await addFavorite(match);
+
+      if (success) {
+        await refreshFavoritesCount();
+      } else {
+        // Revert on failure
+        setMatches(prevMatches =>
+          prevMatches.map(m =>
+            m.id === matchId ? { ...m, isFavorite: originalFavoriteStatus } : m
+          )
+        );
+      }
+
+    } catch (error) {
+      // Revert on error
+      const match = matches.find(m => m.id === matchId);
+      if (match) {
+        setMatches(prevMatches =>
+          prevMatches.map(m =>
+            m.id === matchId ? { ...m, isFavorite: !m.isFavorite } : m
+          )
+        );
+      }
+    }
+  }, [matches, addFavorite, removeFavorite, refreshFavoritesCount]);
+
+  // ✅ INSTANT CATEGORY BUTTON: Zero delay response
+  const renderCategoryButton = useCallback((category: TopCategory) => {
     const isSelected = selectedCategory === category.id;
     const IconComponent = category.icon;
+
+    const selectedBackgroundColor = '#4A1A1A';
+    const selectedTextColor = '#E74C3C';
+    const selectedBorderColor = '#6B2B2B';
 
     return (
       <Pressable
@@ -455,31 +436,25 @@ export default function TopScreen() {
         style={[
           styles.categoryButton,
           {
-            backgroundColor: isSelected ? theme.colors.primary : theme.colors.backgroundSecondary,
-            borderColor: isSelected ? theme.colors.primary : theme.colors.border,
-            shadowColor: isSelected ? theme.colors.primary : '#000',
-            shadowOffset: { width: 0, height: isSelected ? 6 : 4 },
-            shadowOpacity: isSelected ? 0.25 : 0.15,
-            shadowRadius: isSelected ? 8 : 6,
-            elevation: isSelected ? 8 : 6,
+            backgroundColor: isSelected ? selectedBackgroundColor : theme.colors.backgroundSecondary,
+            borderColor: isSelected ? selectedBorderColor : theme.colors.border,
           }
         ]}
         onPress={() => {
-          console.log('⚡ INSTANT CATEGORY:', category.id);
-          
-          // ✅ IMMEDIATE CATEGORY CHANGE - no animations, no delays
+          // ✅ INSTANT CATEGORY CHANGE: No delays or animations
           setSelectedCategory(category.id);
         }}
+        hitSlop={{top: 8, left: 8, bottom: 8, right: 8}}
       >
         <View style={styles.categoryButtonContent}>
           <IconComponent 
             size={20} 
-            color={isSelected ? '#FFFFFF' : theme.colors.textSecondary} 
+            color={isSelected ? selectedTextColor : theme.colors.textSecondary} 
           />
           <Text style={[
             styles.categoryButtonText,
             { 
-              color: isSelected ? '#FFFFFF' : theme.colors.text,
+              color: isSelected ? selectedTextColor : theme.colors.text,
               textAlign: 'center',
             }
           ]}>
@@ -488,7 +463,7 @@ export default function TopScreen() {
           <Text style={[
             styles.categoryButtonDescription,
             { 
-              color: isSelected ? 'rgba(255,255,255,0.8)' : theme.colors.textSecondary,
+              color: isSelected ? 'rgba(231, 76, 60, 0.8)' : theme.colors.textSecondary,
               textAlign: 'center',
             }
           ]}>
@@ -497,22 +472,18 @@ export default function TopScreen() {
         </View>
       </Pressable>
     );
-  };
+  }, [selectedCategory, theme.colors]);
 
-  const renderTabButton = (tab: TabButton) => {
+  // ✅ INSTANT TAB BUTTON: Zero delay response
+  const renderTabButton = useCallback((tab: TabButton) => {
     const IconComponent = tab.icon;
     
     return (
       <Pressable
         key={tab.key}
-        style={[
-          styles.tabButton,
-          { 
-            backgroundColor: 'transparent',
-            borderRadius: 12,
-          }
-        ]}
+        style={styles.tabButton}
         onPress={() => handleTabPress(tab.route)}
+        hitSlop={{top: 8, left: 8, bottom: 8, right: 8}}
       >
         <View style={styles.tabButtonContent}>
           <IconComponent 
@@ -532,10 +503,10 @@ export default function TopScreen() {
         </View>
       </Pressable>
     );
-  };
+  }, [theme.colors, handleTabPress]);
 
-  // ✅ Off-season announcement component
-  const renderOffSeasonNotice = () => {
+  // ✅ STABLE OFF-SEASON NOTICE: Fixed layout
+  const renderOffSeasonNotice = useCallback(() => {
     const getLeagueInfo = () => {
       switch (selectedCategory) {
         case 'uganda':
@@ -599,29 +570,10 @@ export default function TopScreen() {
         </View>
       </View>
     );
-  };
+  }, [selectedCategory, theme.colors]);
 
-  // ✅ TOP MATCH COUNTS: Get upcoming and finished top matches for stats
-  const getTopMatchCounts = useCallback(async () => {
-    try {
-      // Get upcoming top matches
-      const upcomingMatches = await fetchHotMatches('upcoming');
-      
-      // Get finished top matches  
-      const finishedMatches = await fetchHotMatches('finished');
-      
-      return {
-        upcomingCount: upcomingMatches.length,
-        finishedCount: finishedMatches.length
-      };
-    } catch (error) {
-      console.error('Error fetching top match counts:', error);
-      return { upcomingCount: 0, finishedCount: 0 };
-    }
-  }, []);
-
-  // ✅ ENHANCED MATCH STATS: Include upcoming and finished top match counts
-  const getMatchStats = () => {
+  // ✅ STABLE MATCH STATISTICS: No layout changes
+  const getMatchStats = useCallback(() => {
     const liveCount = matches.filter(m => m.status === 'live').length;
     const upcomingCount = matches.filter(m => m.status === 'upcoming').length;
     const finishedCount = matches.filter(m => m.status === 'finished').length;
@@ -632,27 +584,18 @@ export default function TopScreen() {
       finishedCount,
       totalCount: matches.length
     };
-  };
+  }, [matches]);
 
-  // ✅ STATE FOR TOP MATCH COUNTS
-  const [topMatchCounts, setTopMatchCounts] = useState({ upcomingCount: 0, finishedCount: 0 });
-
-  // ✅ LOAD TOP MATCH COUNTS ON MOUNT
-  useEffect(() => {
-    const loadCounts = async () => {
-      const counts = await getTopMatchCounts();
-      setTopMatchCounts(counts);
-      console.log('🏆 TOP MATCH COUNTS:', counts);
-    };
-    loadCounts();
-  }, [getTopMatchCounts]);
-
-  const matchStats = getMatchStats();
+  const matchStats = useMemo(() => getMatchStats(), [getMatchStats]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
+      <StatusBar barStyle={theme.colors.background === '#FFFFFF' ? 'dark-content' : 'light-content'} backgroundColor={theme.colors.backgroundSecondary} />
+      
+      {/* ✅ ABSOLUTE LAYOUT: Prevent any layout shifts */}
+      <View style={styles.absoluteContainer}>
+        
+        {/* Sports Section - Absolute Position */}
         <View style={[styles.sportsSection, { backgroundColor: theme.colors.backgroundSecondary }]}>
           <SportsTabs
             active="important"
@@ -660,15 +603,23 @@ export default function TopScreen() {
           />
         </View>
 
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {topCategories.map(renderCategoryButton)}
-        </ScrollView>
+        {/* Categories Section - Absolute Position */}
+        <View style={styles.categoriesWrapper}>
+          <ScrollView 
+            ref={scrollViewRef}
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.categoriesContainer}
+            contentContainerStyle={styles.categoriesContent}
+            decelerationRate="fast"
+            scrollEventThrottle={16}
+            bounces={false}
+          >
+            {topCategories.map(renderCategoryButton)}
+          </ScrollView>
+        </View>
 
+        {/* Stats Bar - Absolute Position */}
         <View style={[styles.statsBar, { backgroundColor: theme.colors.backgroundSecondary }]}>
           <View style={styles.statGroup}>
             <View style={[styles.statBadge, { backgroundColor: theme.colors.primary + '20' }]}>
@@ -681,25 +632,22 @@ export default function TopScreen() {
             <View style={[styles.statBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
               <Clock size={12} color={theme.colors.textSecondary} />
               <Text style={[styles.statText, { color: theme.colors.textSecondary, fontWeight: '400' }]}>
-                <Text style={[styles.statText, { color: '#FFFFFF', fontWeight: '600' }]}>
-                  {topMatchCounts.upcomingCount}
-                </Text>
-                {' '}Upcoming
+                {matchStats.upcomingCount} Upcoming
               </Text>
             </View>
             
             <View style={[styles.statBadge, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
               <Flag size={12} color={theme.colors.textSecondary} />
               <Text style={[styles.statText, { color: theme.colors.textSecondary, fontWeight: '400' }]}>
-                <Text style={[styles.statText, { color: '#FFFFFF', fontWeight: '600' }]}>
-                  {topMatchCounts.finishedCount}
-                </Text>
-                {' '}Finished
+                {matchStats.finishedCount} Finished
               </Text>
             </View>
           </View>
         </View>
 
+
+
+        {/* Matches Section - Absolute Position */}
         <View style={[styles.matchesSection, { backgroundColor: theme.colors.background }]}>
           <ScrollView
             style={styles.matchesList}
@@ -712,36 +660,45 @@ export default function TopScreen() {
               />
             }
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={16}
+            decelerationRate="fast"
+            bounces={false}
           >
-            {matches.length === 0 ? (
-              selectedCategory !== 'live' ? renderOffSeasonNotice() : (
-                <View style={styles.emptyContainer}>
-                  <Trophy size={48} color={theme.colors.textSecondary} />
-                  <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
-                    No Live Matches
-                  </Text>
-                  <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
-                    Try refreshing or check again later
-                  </Text>
+            {/* ✅ FIXED CONTENT: Consistent height always */}
+            <View style={styles.contentContainer}>
+              {sortedMatches.length === 0 ? (
+                selectedCategory !== 'live' ? (
+                  renderOffSeasonNotice()
+                ) : (
+                  <View style={styles.emptyContainer}>
+                    <Trophy size={48} color={theme.colors.textSecondary} />
+                    <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>
+                      Top Matches
+                    </Text>
+                    <Text style={[styles.emptySubtitle, { color: theme.colors.textSecondary }]}>
+                      {isLoading ? 'Loading top matches...' : 'No matches available'}
+                    </Text>
+                  </View>
+                )
+              ) : (
+                <View style={styles.matchesContainer}>
+                  {sortedMatches.map((match, index) => (
+                    <MatchItem
+                      key={`${match.id}-${index}`}
+                      match={match}
+                      onToggleFavorite={toggleFavorite}
+                      onPress={handleMatchPress}
+                    />
+                  ))}
                 </View>
-              )
-            ) : (
-              <View style={styles.matchesContainer}>
-                {matches.map((match, index) => (
-                  <MatchItem
-                    key={`${match.id}-${index}`}
-                    match={match}
-                    onToggleFavorite={toggleFavorite}
-                    showLeague={true}
-                  />
-                ))}
-              </View>
-            )}
+              )}
+            </View>
           </ScrollView>
         </View>
-        </Animated.View>
-      </SafeAreaView>
+      </View>
 
+      {/* ✅ FIXED BOTTOM TAB BAR: Absolute position */}
       <View style={[styles.bottomTabBar, { 
         backgroundColor: theme.colors.backgroundSecondary,
         borderTopColor: theme.colors.border 
@@ -759,6 +716,20 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  // ✅ ABSOLUTE LAYOUT: Prevent any layout shifts with absolute positioning
+  absoluteContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 25, // Account for status bar
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  // ✅ ANTI-JUMPING: Fixed layout to prevent shifts
+  fixedLayout: {
+    flex: 1,
+    position: 'relative',
+  },
   sportsSection: {
     paddingVertical: 8,
     shadowColor: '#000',
@@ -769,10 +740,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    // ✅ FIXED HEIGHT: Prevent layout shifts
+    height: 48,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 5,
+  },
+  categoriesWrapper: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    right: 0,
+    height: 100,
+    zIndex: 4,
   },
   categoriesContainer: {
-    maxHeight: 100,
-    marginVertical: 4,
+    height: 100,
   },
   categoriesContent: {
     paddingHorizontal: 18,
@@ -794,7 +779,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 6,
-    minHeight: 80,
+    height: 80,
   },
   categoryButtonContent: {
     alignItems: 'center',
@@ -820,10 +805,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   statsBar: {
+    position: 'absolute',
+    top: 148,
+    left: 0,
+    right: 0,
+    height: 48,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
+    zIndex: 3,
   },
   statGroup: {
     flexDirection: 'row',
@@ -842,7 +833,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
   },
   matchesSection: {
-    flex: 1,
+    position: 'absolute',
+    top: 196,
+    left: 0,
+    right: 0,
+    bottom: Platform.OS === 'ios' ? 84 : 70,
+    zIndex: 2,
   },
   matchesList: {
     flex: 1,
@@ -863,6 +859,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 60,
+    minHeight: 300,
   },
   emptyTitle: {
     fontSize: 18,
@@ -877,9 +874,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   matchesContainer: {
-    paddingBottom: 100,
+    paddingBottom: 20,
+  },
+  contentContainer: {
+    minHeight: 400, // Consistent height always
   },
   bottomTabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     borderTopWidth: 1,
     height: Platform.OS === 'ios' ? 84 : 70,
@@ -894,6 +898,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 8,
+    zIndex: 10,
   },
   tabButton: {
     flex: 1,
@@ -919,6 +924,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 60,
     paddingHorizontal: 20,
+    minHeight: 300,
   },
   offSeasonCard: {
     paddingVertical: 32,
@@ -962,5 +968,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     textAlign: 'center',
     opacity: 0.7,
+    },
+  // ✅ ANTI-JUMPING: Fixed content height to prevent layout shifts
+  fixedContentHeight: {
+    minHeight: 300, // Ensure consistent height during loading
   },
-}); 
+});  

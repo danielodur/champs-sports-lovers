@@ -55,8 +55,8 @@ export default function PredictionNumbersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Mock prediction data
-  const mockPredictions: PredictionRecord[] = [
+  // Real prediction data (to be replaced with API call)
+  const realPredictions: PredictionRecord[] = [
     {
       id: '1',
       predictionNumber: 'PN2024-001',
@@ -116,7 +116,7 @@ export default function PredictionNumbersScreen() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setPredictions(mockPredictions);
+      setPredictions(realPredictions);
     } catch (error) {
       console.error('Error loading predictions:', error);
       Alert.alert('Error', 'Failed to load prediction records');

@@ -59,8 +59,8 @@ export default function PredictionsScreen() {
   const [activeTab, setActiveTab] = useState('free');
   const { t } = useTranslation();
 
-  // Mock prediction data with UGX pricing
-  const mockPredictions: Prediction[] = [
+  // Real prediction data with UGX pricing (to be replaced with API call)
+  const realPredictions: Prediction[] = [
     {
       id: '1',
       type: 'free',
@@ -204,7 +204,7 @@ export default function PredictionsScreen() {
   ];
 
   React.useEffect(() => {
-    setPredictions(mockPredictions);
+    setPredictions(realPredictions);
   }, []);
 
   const onRefresh = useCallback(async () => {

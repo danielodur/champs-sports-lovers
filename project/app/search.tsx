@@ -1,15 +1,19 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Platform, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search, X } from 'lucide-react-native';
+import { Search, X, Clock, ExternalLink } from 'lucide-react-native';
 import { useTheme } from '@/hooks/useTheme';
+import { newsService, NewsArticle } from '@/services/newsService';
 
 export default function SearchScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<NewsArticle[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const getSuggestions = useCallback((query: string) => {
     if (!query.trim()) {
@@ -44,14 +48,63 @@ export default function SearchScreen() {
     setSuggestions(filtered);
   }, []);
 
+  const performSearch = async (query: string) => {
+    if (!query.trim()) return;
+    
+    setIsSearching(true);
+    setHasSearched(true);
+    setSuggestions([]);
+    
+    try {
+      console.log(`🔍 Searching for: ${query}`);
+      const results = await newsService.searchNews(query, 20);
+      setSearchResults(results);
+      console.log(`🔍 Found ${results.length} results for "${query}"`);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    getSuggestions(text);
+    if (text.trim()) {
+      getSuggestions(text);
+    } else {
+      setSuggestions([]);
+      setSearchResults([]);
+      setHasSearched(false);
+    }
   };
 
   const handleSelectSuggestion = (suggestion: string) => {
     setSearchQuery(suggestion);
     setSuggestions([]);
+    performSearch(suggestion);
+  };
+
+  const handleSubmitSearch = () => {
+    if (searchQuery.trim()) {
+      performSearch(searchQuery);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) {
+      return `${diffDays}d ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours}h ago`;
+    } else {
+      return 'Just now';
+    }
   };
 
   const hotSearches = [
@@ -132,17 +185,18 @@ export default function SearchScreen() {
               styles.searchInput, 
               { 
                 color: theme.colors.text,
-                ...Platform.select({
-                  web: {
-                    outlineStyle: 'none',
-                  }
-                })
-              }
+              },
+              Platform.select({
+                web: {
+                  outlineStyle: 'none' as any,
+                } as any
+              })
             ]}
             placeholder="Search matches, teams, players or news"
             placeholderTextColor={theme.colors.textSecondary}
             value={searchQuery}
             onChangeText={handleSearch}
+            onSubmitEditing={handleSubmitSearch}
             autoFocus
             returnKeyType="search"
           />
@@ -177,6 +231,74 @@ export default function SearchScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+        </ScrollView>
+      ) : hasSearched ? (
+        <ScrollView style={styles.content}>
+          {isSearching ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+              <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+                Searching news from multiple sources...
+              </Text>
+            </View>
+          ) : (
+            <>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+                Search Results for "{searchQuery}" ({searchResults.length})
+              </Text>
+              {searchResults.length > 0 ? (
+                <View style={styles.searchResultsContainer}>
+                                     {searchResults.map((article) => (
+                     <TouchableOpacity 
+                       key={article.id}
+                       style={[styles.newsResultItem, { borderBottomColor: theme.colors.border }]}
+                       onPress={() => router.push({
+                         pathname: '/news-detail',
+                         params: { data: JSON.stringify(article) }
+                       })}
+                     >
+                      <View style={styles.newsContent}>
+                        <Image 
+                          source={{ uri: article.urlToImage }} 
+                          style={styles.newsImage}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.newsTextContent}>
+                          <Text style={[styles.newsTitle, { color: theme.colors.text }]} numberOfLines={2}>
+                            {article.title}
+                          </Text>
+                          <Text style={[styles.newsDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+                            {article.description}
+                          </Text>
+                          <View style={styles.newsInfo}>
+                            <Text style={[styles.newsSource, { color: theme.colors.primary }]}>
+                              {article.source.name}
+                            </Text>
+                            <View style={styles.newsTime}>
+                              <Clock size={12} color={theme.colors.textSecondary} />
+                              <Text style={[styles.timeText, { color: theme.colors.textSecondary }]}>
+                                {formatTimeAgo(article.publishedAt)}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.noResultsContainer}>
+                  <Search size={48} color={theme.colors.textSecondary} />
+                  <Text style={[styles.noResultsTitle, { color: theme.colors.text }]}>
+                    No results found
+                  </Text>
+                  <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
+                    Try searching for different keywords or check your spelling
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
         </ScrollView>
       ) : (
         <ScrollView style={styles.content}>
@@ -379,5 +501,84 @@ const styles = StyleSheet.create({
   },
   bulletinText: {
     fontFamily: 'Inter-Regular',
+  },
+  // Search Results Styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    fontSize: 14,
+    marginTop: 12,
+    textAlign: 'center',
+  },
+  searchResultsContainer: {
+    flex: 1,
+  },
+  newsResultItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
+  newsContent: {
+    flexDirection: 'row',
+  },
+  newsImage: {
+    width: 80,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  newsTextContent: {
+    flex: 1,
+  },
+  newsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  newsDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  newsInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  newsSource: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  newsTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  noResultsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+    paddingHorizontal: 20,
+  },
+  noResultsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  noResultsText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
   },
 });
