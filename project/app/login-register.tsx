@@ -1,10 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Platform, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ChevronLeft, Trophy, Eye, EyeOff } from 'lucide-react-native';
-import { useTheme, useThemeMode } from '@/hooks/useTheme';
-import { useTranslation } from 'react-i18next';
-import useAuth from '@/hooks/useAuth';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { ChevronLeft, Trophy, Eye, EyeOff, Check } from "lucide-react-native";
+import { useTheme, useThemeMode } from "@/hooks/useTheme";
+import { useTranslation } from "react-i18next";
+import useAuth from "@/hooks/useAuth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -12,83 +23,94 @@ export default function LoginScreen() {
   const { theme: themeMode } = useThemeMode();
   const { t } = useTranslation();
   const { setLoggedIn } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
     if (!agreedToTerms) return;
     if (!username || !password) {
-      Alert.alert(t('Error'), t('Please enter both username and password'));
+      Alert.alert(t("Error"), t("Please enter both username and password"));
       return;
     }
-    
+
     try {
-      console.log('Login pressed with:', { username, password });
-      
+      console.log("Login pressed with:", { username, password });
+
       // Set logged in state with user info - generate professional Dicebear avatar
-      const finalUsername = username || 'DefaultUser123';
-      const backgroundColors = ['ffdfbf', 'f0f0f0', 'e8f4fd', 'fff2e6', 'f8f8ff', 'f0fff0', 'fffacd', 'f5f5dc'];
-      const seedHash = finalUsername.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
+      const finalUsername = username || "DefaultUser123";
+      const backgroundColors = [
+        "ffdfbf",
+        "f0f0f0",
+        "e8f4fd",
+        "fff2e6",
+        "f8f8ff",
+        "f0fff0",
+        "fffacd",
+        "f5f5dc",
+      ];
+      const seedHash = finalUsername.split("").reduce((a, b) => {
+        a = (a << 5) - a + b.charCodeAt(0);
         return a & a;
       }, 0);
       const colorIndex = Math.abs(seedHash) % backgroundColors.length;
       const backgroundColor = backgroundColors[colorIndex];
       const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(finalUsername)}&backgroundColor=${backgroundColor}&size=160`;
-      
+
       // ✅ CRITICAL FIX: Set authentication state BEFORE navigation
-      console.log('🔐 Setting authentication state...');
+      console.log("🔐 Setting authentication state...");
       setLoggedIn(true, {
         username: finalUsername,
-        avatar: avatarUrl
+        avatar: avatarUrl,
       });
-      
-      console.log('✅ Login successful, preparing navigation...');
-      console.log('📝 User data set:', { username: finalUsername, avatar: avatarUrl });
-      
+
+      console.log("✅ Login successful, preparing navigation...");
+      console.log("📝 User data set:", {
+        username: finalUsername,
+        avatar: avatarUrl,
+      });
+
       // ✅ ENHANCED NAVIGATION: Multiple navigation attempts with different strategies
       const navigateToProfile = () => {
         try {
-          console.log('🚀 Attempting navigation to profile...');
-          
+          console.log("🚀 Attempting navigation to profile...");
+
           // Strategy 1: Replace with specific tab path
-          router.replace('/(tabs)/profile');
-          
+          router.replace("/(tabs)/profile");
+
           // Strategy 2: Fallback after delay
           setTimeout(() => {
-            router.replace('/(tabs)/profile');
-            console.log('🔄 Fallback navigation executed');
+            router.replace("/(tabs)/profile");
+            console.log("🔄 Fallback navigation executed");
           }, 200);
-          
-          console.log('✅ Navigation commands executed');
+
+          console.log("✅ Navigation commands executed");
         } catch (navError) {
-          console.error('❌ Navigation error:', navError);
-          
+          console.error("❌ Navigation error:", navError);
+
           // Strategy 3: Emergency fallback
           setTimeout(() => {
-            router.push('/(tabs)/profile');
-            console.log('🆘 Emergency navigation executed');
+            router.push("/(tabs)/profile");
+            console.log("🆘 Emergency navigation executed");
           }, 500);
         }
       };
-      
+
       // Execute navigation immediately
       navigateToProfile();
-      
     } catch (error) {
-      console.error('❌ Login error:', error);
-      Alert.alert(t('Error'), 'Login failed. Please try again.');
+      console.error("❌ Login error:", error);
+      Alert.alert(t("Error"), "Login failed. Please try again.");
     }
   };
 
   const handleRecoverAccount = () => {
-    router.push('/recover-account');
+    router.push("/recover-account");
   };
 
   const handleRegister = () => {
-    router.push('/register-and-login');
+    router.push("/register-and-login");
   };
 
   const handleSocialLogin = (provider: string) => {
@@ -98,27 +120,36 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-      <ScrollView 
+      <ScrollView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header with Back Button and Recover Account */}
         <View style={styles.header}>
-          <TouchableOpacity 
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile')} 
+          <TouchableOpacity
+            onPress={() =>
+              router.canGoBack()
+                ? router.back()
+                : router.replace("/(tabs)/profile")
+            }
             style={[styles.backButton, { marginTop: 40 }]}
             activeOpacity={0.7}
           >
             <ChevronLeft size={28} color={theme.colors.text} />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.recoverButton, { marginTop: 40 }]} 
+
+          <TouchableOpacity
+            style={[styles.recoverButton, { marginTop: 40 }]}
             onPress={handleRecoverAccount}
             activeOpacity={0.7}
           >
-            <Text style={[styles.recoverText, { color: theme.colors.textSecondary }]}>
+            <Text
+              style={[
+                styles.recoverText,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
               Recover Account
             </Text>
           </TouchableOpacity>
@@ -128,10 +159,17 @@ export default function LoginScreen() {
         <View style={styles.mainContent}>
           {/* Logo Section */}
           <View style={styles.logoContainer}>
-            <View style={[styles.logoBackground, { backgroundColor: theme.colors.primary }]}>
+            <View
+              style={[
+                styles.logoBackground,
+                { backgroundColor: theme.colors.primary },
+              ]}
+            >
               <Trophy size={40} color="#FFFFFF" />
             </View>
-            <Text style={[styles.appName, { color: theme.colors.text }]}>Champs</Text>
+            <Text style={[styles.appName, { color: theme.colors.text }]}>
+              Champs
+            </Text>
           </View>
 
           {/* Form Section */}
@@ -142,32 +180,34 @@ export default function LoginScreen() {
                 {
                   backgroundColor: theme.colors.backgroundSecondary,
                   color: theme.colors.text,
-                  borderColor: theme.colors.border
+                  borderColor: theme.colors.border,
                 },
-                Platform.select({ web: { outlineStyle: 'none' } as any })
+                Platform.select({ web: { outlineStyle: "none" } as any }),
               ]}
-              placeholder={t('Enter your username')}
+              placeholder={t("Enter your username")}
               placeholderTextColor={theme.colors.textSecondary}
               value={username}
               onChangeText={setUsername}
             />
-            
-            <View style={[
-              styles.passwordContainer,
-              {
-                backgroundColor: theme.colors.backgroundSecondary,
-                borderColor: theme.colors.border
-              }
-            ]}>
+
+            <View
+              style={[
+                styles.passwordContainer,
+                {
+                  backgroundColor: theme.colors.backgroundSecondary,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+            >
               <TextInput
                 style={[
                   styles.passwordInput,
                   {
-                    color: theme.colors.text
+                    color: theme.colors.text,
                   },
-                  Platform.select({ web: { outlineStyle: 'none' } as any })
+                  Platform.select({ web: { outlineStyle: "none" } as any }),
                 ]}
-                placeholder={t('Enter your password')}
+                placeholder={t("Enter your password")}
                 placeholderTextColor={theme.colors.textSecondary}
                 value={password}
                 onChangeText={setPassword}
@@ -185,13 +225,18 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.forgotPassword}
               activeOpacity={0.7}
-              onPress={() => router.push('/forgot-password')}
+              onPress={() => router.push("/forgot-password")}
             >
-              <Text style={[styles.forgotPasswordText, { color: theme.colors.textSecondary }]}>
-                {t('Forgot Password?')}
+              <Text
+                style={[
+                  styles.forgotPasswordText,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {t("Forgot Password?")}
               </Text>
             </TouchableOpacity>
 
@@ -202,50 +247,75 @@ export default function LoginScreen() {
                 onPress={() => setAgreedToTerms(!agreedToTerms)}
                 activeOpacity={0.7}
               >
-                <View style={[
-                  styles.checkboxInner,
-                  {
-                    borderColor: theme.colors.border,
-                    backgroundColor: agreedToTerms ? theme.colors.primary : 'transparent'
-                  }
-                ]} />
+                <View
+                  style={[
+                    styles.checkboxInner,
+                    {
+                      borderColor: theme.colors.border,
+                      backgroundColor: agreedToTerms
+                        ? theme.colors.primary
+                        : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  {agreedToTerms && <Check color="white" size={10} />}
+                </View>
               </TouchableOpacity>
-              <Text style={[styles.termsText, { color: theme.colors.textSecondary }]}>
-                I have read and agree to the{' '}
-                <Text style={{ color: theme.colors.primary }}>User Agreement</Text> and{' '}
-                <Text style={{ color: theme.colors.primary }}>Privacy Policy</Text>
+              <Text
+                style={[
+                  styles.termsText,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                I have read and agree to the{" "}
+                <Text style={{ color: theme.colors.primary }}>
+                  User Agreement
+                </Text>{" "}
+                and{" "}
+                <Text style={{ color: theme.colors.primary }}>
+                  Privacy Policy
+                </Text>
               </Text>
             </View>
 
             {/* Login Button */}
             <TouchableOpacity
               style={[
-                styles.loginButton, 
-                { 
-                  backgroundColor: agreedToTerms ? '#EF5350' : '#CCCCCC',
-                  opacity: agreedToTerms ? 1 : 0.6
-                }
+                styles.loginButton,
+                {
+                  backgroundColor: agreedToTerms ? "#EF5350" : "#CCCCCC",
+                  opacity: agreedToTerms ? 1 : 0.6,
+                },
               ]}
               disabled={!agreedToTerms}
               onPress={handleLogin}
               activeOpacity={0.8}
             >
-              <Text style={[
-                styles.loginButtonText,
-                { color: agreedToTerms ? '#FFFFFF' : '#999999' }
-              ]}>
-                {t('Login/Register')}
+              <Text
+                style={[
+                  styles.loginButtonText,
+                  { color: agreedToTerms ? "#FFFFFF" : "#999999" },
+                ]}
+              >
+                {t("Login/Register")}
               </Text>
             </TouchableOpacity>
 
             {/* Register Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.registerButton}
               onPress={handleRegister}
               activeOpacity={0.7}
             >
-              <Text style={[styles.registerButtonText, { color: theme.colors.textSecondary }]}>
-                {t('Login/Register with Code')}
+              <Text
+                style={[
+                  styles.registerButtonText,
+                  { color: theme.colors.textSecondary },
+                ]}
+              >
+                {t("Login/Register with Code")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -256,25 +326,25 @@ export default function LoginScreen() {
 
         {/* Social Login Icons at Bottom */}
         <View style={styles.socialContainer}>
-          <TouchableOpacity 
-            style={[styles.socialButton, { backgroundColor: '#000000' }]}
-            onPress={() => handleSocialLogin('X')}
+          <TouchableOpacity
+            style={[styles.socialButton, { backgroundColor: "#000000" }]}
+            onPress={() => handleSocialLogin("X")}
             activeOpacity={0.7}
           >
             <Text style={styles.xIcon}>𝕏</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.socialButton, { backgroundColor: '#25D366' }]}
-            onPress={() => handleSocialLogin('WhatsApp')}
+
+          <TouchableOpacity
+            style={[styles.socialButton, { backgroundColor: "#25D366" }]}
+            onPress={() => handleSocialLogin("WhatsApp")}
             activeOpacity={0.7}
           >
             <Text style={styles.whatsappIcon}>💬</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.socialButton, { backgroundColor: '#1877F2' }]}
-            onPress={() => handleSocialLogin('Facebook')}
+
+          <TouchableOpacity
+            style={[styles.socialButton, { backgroundColor: "#1877F2" }]}
+            onPress={() => handleSocialLogin("Facebook")}
             activeOpacity={0.7}
           >
             <Text style={styles.facebookIcon}>f</Text>
@@ -296,9 +366,9 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 40,
     zIndex: 1,
   },
@@ -312,33 +382,33 @@ const styles = StyleSheet.create({
   },
   recoverText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: "Inter-Regular",
   },
   mainContent: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     minHeight: 500,
   },
   logoContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   logoBackground: {
     width: 80,
     height: 80,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
   },
   appName: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
+    fontFamily: "Inter-Bold",
   },
   formContainer: {
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   input: {
     height: 48,
@@ -346,12 +416,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 12,
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: "Inter-Regular",
     borderWidth: 1,
   },
   passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     height: 48,
     borderRadius: 8,
     paddingHorizontal: 16,
@@ -359,35 +429,35 @@ const styles = StyleSheet.create({
   },
   passwordInput: {
     flex: 1,
-    height: '100%',
-    backgroundColor: 'transparent',
+    height: "100%",
+    backgroundColor: "transparent",
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontFamily: "Inter-Regular",
   },
   eyeIcon: {
     padding: 8,
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
     marginBottom: 16,
     padding: 4,
     borderRadius: 4,
   },
   forgotPasswordText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: "Inter-Regular",
   },
   termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   checkbox: {
     width: 24,
     height: 24,
     marginRight: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 4,
   },
   checkboxInner: {
@@ -399,15 +469,15 @@ const styles = StyleSheet.create({
   termsText: {
     flex: 1,
     fontSize: 12,
-    fontFamily: 'Inter-Regular',
+    fontFamily: "Inter-Regular",
   },
   loginButton: {
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -418,23 +488,23 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: "Inter-SemiBold",
   },
   registerButton: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 8,
     borderRadius: 8,
   },
   registerButtonText: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: "Inter-Regular",
   },
   bottomSpacer: {
     height: 60,
   },
   socialContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 40,
     paddingBottom: 20,
   },
@@ -442,9 +512,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -459,15 +529,16 @@ const styles = StyleSheet.create({
   },
   xIcon: {
     fontSize: 24,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
+    fontFamily: "Inter-Bold",
+    color: "#FFFFFF",
   },
   whatsappIcon: {
     fontSize: 20,
   },
   facebookIcon: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
+    fontFamily: "Inter-Bold",
+    color: "#FFFFFF",
   },
 });
+
