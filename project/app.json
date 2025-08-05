@@ -11,9 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "extra": {
       "rapidApiKey": "EXPO_PUBLIC_RAPID_API_KEY_PRO",
       "apiFootballHost": "api-football-v1.p.rapidapi.com",
@@ -31,11 +29,12 @@
       "mockFallbackEnabled": false,
       "supabaseUrl": "EXPO_PUBLIC_SUPABASE_URL",
       "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "supabaseRedirectUrl": "EXPO_PUBLIC_SUPABASE_REDIRECT_URL",
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "ded7dd08-220c-4a13-a8e2-5ba8ba0a1fd3"
       }
     },
     "ios": {
@@ -65,16 +64,14 @@
       "bundler": "metro"
     },
     "sdkVersion": "53.0.0",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
+    "platforms": ["ios", "android", "web"],
     "scheme": "champs",
     "privacy": "public",
     "githubUrl": "https://github.com/yourusername/champs",
     "plugins": [
       "expo-router",
+      "expo-web-browser",
+      "expo-dev-client",
       [
         "expo-image-picker",
         {
@@ -86,10 +83,13 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#ffffff",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
+          "color": "#ffffff"
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.65605327855-bbjb8tsm97ee40lquj4053218i1kurt2"
         }
       ]
     ],
