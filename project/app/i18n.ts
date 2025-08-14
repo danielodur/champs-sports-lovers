@@ -43,6 +43,7 @@ const resources = {
       'Try Again': 'Try Again',
       'Go Back': 'Go Back',
       'Logout': 'Logout',
+      'Logging out...': 'Logging out...',
       'Login': 'Login',
       'Register': 'Register',
       'Recover Account': 'Recover Account',

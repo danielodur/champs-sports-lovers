@@ -1,8 +1,12 @@
-import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService, AuthState as SupabaseAuthState, UserProfile } from '@/services/authService';
-import { User, Session } from '@supabase/supabase-js';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  authService,
+  AuthState as SupabaseAuthState,
+  UserProfile,
+} from "@/services/authService";
+import { User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -10,21 +14,39 @@ interface AuthState {
   profile: UserProfile | null;
   session: Session | null;
   loading: boolean;
+  logoutLoading: boolean; // Add logout loading state
   userInfo: {
     username: string;
     avatar?: string;
   } | null;
   // ✅ NEW: Track authentication type to prevent conflicts
-  authType: 'supabase' | 'test' | null;
+  authType: "supabase" | "test" | null;
   // Supabase methods
   signInWithPhone: (phone: string) => Promise<{ error?: any }>;
+  signInWithWhatsapp: (phone: string) => Promise<{ error?: any }>;
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error?: any }>;
-  signInWithEmail: (email: string, password: string) => Promise<{ error?: any }>;
-  signUpWithEmail: (email: string, password: string, username?: string) => Promise<{ error?: any }>;
+  signInWithEmail: (
+    email: string,
+    password: string
+  ) => Promise<{ error?: any }>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    username?: string
+  ) => Promise<{ error?: any }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
   resetPassword: (email: string) => Promise<{ error?: any }>;
+  // Social authentication methods
+  signInWithGoogle: () => Promise<{ error?: any; url?: string }>;
+  signInWithFacebook: () => Promise<{ error?: any; url?: string }>;
+  signInWithSocial: (
+    provider: "google" | "facebook"
+  ) => Promise<{ error?: any; url?: string }>;
   // Legacy methods for compatibility
-  setLoggedIn: (loggedIn: boolean, userInfo?: { username: string; avatar?: string }) => void;
+  setLoggedIn: (
+    loggedIn: boolean,
+    userInfo?: { username: string; avatar?: string }
+  ) => void;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
 }
@@ -37,12 +59,17 @@ const useAuth = create<AuthState>()(
       profile: null,
       session: null,
       loading: true,
+      logoutLoading: false, // Initialize logoutLoading
       userInfo: null,
       authType: null,
 
       // Supabase authentication methods
       signInWithPhone: async (phone: string) => {
         return await authService.signInWithPhone(phone);
+      },
+
+      signInWithWhatsapp: async (phone: string) => {
+        return await authService.signInWithWhatsapp(phone);
       },
 
       verifyPhoneOtp: async (phone: string, token: string) => {
@@ -53,13 +80,17 @@ const useAuth = create<AuthState>()(
         return await authService.signInWithEmail(email, password);
       },
 
-      signUpWithEmail: async (email: string, password: string, username?: string) => {
+      signUpWithEmail: async (
+        email: string,
+        password: string,
+        username?: string
+      ) => {
         return await authService.signUpWithEmail(email, password, username);
       },
 
       updateProfile: async (updates: Partial<UserProfile>) => {
         const { user } = get();
-        if (!user) return { error: 'No user logged in' };
+        if (!user) return { error: "No user logged in" };
         return await authService.updateProfile(user.id, updates);
       },
 
@@ -67,21 +98,34 @@ const useAuth = create<AuthState>()(
         return await authService.resetPassword(email);
       },
 
+      // Social authentication methods
+      signInWithGoogle: async () => {
+        return await authService.signInWithGoogle();
+      },
+
+      signInWithFacebook: async () => {
+        return await authService.signInWithFacebook();
+      },
+
+      signInWithSocial: async (provider: "google" | "facebook") => {
+        return await authService.signInWithSocial(provider);
+      },
+
       // ✅ ENHANCED: Legacy compatibility method with persistence
       setLoggedIn: (loggedIn, userInfo) => {
-        console.log('🔐 setLoggedIn called with:', { loggedIn, userInfo });
-        
+        console.log("🔐 setLoggedIn called with:", { loggedIn, userInfo });
+
         if (!loggedIn) {
           // User is logging out - clear all state
-          console.log('🚪 Logging out user - clearing all state');
-          set({ 
-            isLoggedIn: false, 
+          console.log("🚪 Logging out user - clearing all state");
+          set({
+            isLoggedIn: false,
             userInfo: null,
             user: null,
             profile: null,
             session: null,
             authType: null,
-            loading: false 
+            loading: false,
           });
           return;
         }
@@ -96,14 +140,14 @@ const useAuth = create<AuthState>()(
             profile_picture: userInfo.avatar,
             champs_id: `CH${Math.random().toString().slice(2, 14)}`,
             real_name: `Test User ${Math.random().toString().slice(7, 11)}`,
-            quote: '🏆 Sports Wee Champion! Ready to dominate the game! 💪',
+            quote: "🏆 Sports Wee Champion! Ready to dominate the game! 💪",
             email: `${userInfo.username.toLowerCase()}@sportswee.com`,
-            phone: '+256772908010',
+            phone: "+256772908010",
             level: 5,
             total_points: 1250,
             app_coins: 500,
             is_vip: false,
-            full_name: `Test User ${Math.random().toString().slice(7, 11)}`
+            full_name: `Test User ${Math.random().toString().slice(7, 11)}`,
           };
 
           // Create mock user for compatibility
@@ -113,92 +157,104 @@ const useAuth = create<AuthState>()(
             phone: mockProfile.phone,
             user_metadata: { username: userInfo.username },
             app_metadata: {},
-            aud: 'authenticated',
+            aud: "authenticated",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             confirmed_at: new Date().toISOString(),
             email_confirmed_at: new Date().toISOString(),
             phone_confirmed_at: new Date().toISOString(),
             last_sign_in_at: new Date().toISOString(),
-            role: 'authenticated',
-            factors: []
+            role: "authenticated",
+            factors: [],
           } as User;
 
-          console.log('✅ Setting logged in state with persistence:', { 
-            isLoggedIn: true, 
+          console.log("✅ Setting logged in state with persistence:", {
+            isLoggedIn: true,
             userInfo,
             userId: mockUser.id,
-            username: mockProfile.username 
+            username: mockProfile.username,
           });
-          
+
           // ✅ CRITICAL FIX: Set authType to 'test' to prevent Supabase override
-          set({ 
-            isLoggedIn: true, 
+          set({
+            isLoggedIn: true,
             userInfo,
             user: mockUser,
             profile: mockProfile,
             session: null, // Mock session for fallback
-            authType: 'test', // ✅ Mark as test authentication
-            loading: false 
+            authType: "test", // ✅ Mark as test authentication
+            loading: false,
           });
-          
-          console.log('✅ Test user profile created and persisted with full features:', mockProfile.username);
+
+          console.log(
+            "✅ Test user profile created and persisted with full features:",
+            mockProfile.username
+          );
         }
       },
 
       logout: async () => {
-        const { authType } = get();
-        
-        if (authType === 'supabase') {
-          const { error } = await authService.signOut();
-          if (error) {
-            console.error('Error signing out from Supabase:', error);
+        try {
+          set({ logoutLoading: true });
+          const { authType } = get();
+
+          if (authType === "supabase") {
+            const { error } = await authService.signOut();
+            if (error) {
+              console.error("Error signing out from Supabase:", error);
+            }
           }
+
+          // Clear all state regardless of auth type
+          set({
+            isLoggedIn: false,
+            userInfo: null,
+            user: null,
+            profile: null,
+            session: null,
+            authType: null,
+            loading: false,
+            logoutLoading: false,
+          });
+        } catch (error) {
+          console.error("Error during logout:", error);
+          set({ logoutLoading: false });
         }
-        
-        // Clear all state regardless of auth type
-        set({ 
-          isLoggedIn: false, 
-          userInfo: null,
-          user: null,
-          profile: null,
-          session: null,
-          authType: null,
-          loading: false 
-        });
       },
 
       initializeAuth: async () => {
         try {
           set({ loading: true });
-          
+
           // ✅ CRITICAL FIX: Check if we have test authentication first
           const currentState = get();
-          if (currentState.authType === 'test' && currentState.isLoggedIn) {
-            console.log('🔧 Test authentication found, skipping Supabase initialization');
+          if (currentState.authType === "test" && currentState.isLoggedIn) {
+            console.log(
+              "🔧 Test authentication found, skipping Supabase initialization"
+            );
             set({ loading: false });
             return;
           }
-          
+
           // Only initialize Supabase if not using test auth
           await authService.initializeAuth();
           // State will be updated by the auth state listener for Supabase auth
         } catch (error) {
-          console.error('Error initializing auth:', error);
-          set({ 
-            isLoggedIn: false, 
-            user: null, 
-            profile: null, 
-            session: null, 
-            userInfo: null, 
+          console.error("Error initializing auth:", error);
+          set({
+            isLoggedIn: false,
+            user: null,
+            profile: null,
+            session: null,
+            userInfo: null,
             authType: null,
-            loading: false 
+            loading: false,
           });
         }
       },
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
       // ✅ Persist critical auth state
       partialize: (state) => ({
@@ -206,7 +262,7 @@ const useAuth = create<AuthState>()(
         userInfo: state.userInfo,
         user: state.user,
         profile: state.profile,
-        authType: state.authType
+        authType: state.authType,
       }),
     }
   )
@@ -216,23 +272,29 @@ const useAuth = create<AuthState>()(
 authService.onAuthStateChange((authState: SupabaseAuthState) => {
   const { setState, getState } = useAuth;
   const currentState = getState();
-  
+
   // ✅ CRITICAL FIX: Don't override test authentication
-  if (currentState.authType === 'test' && currentState.isLoggedIn) {
-    console.log('🔧 Preventing Supabase auth override of test authentication');
+  if (currentState.authType === "test" && currentState.isLoggedIn) {
+    console.log("🔧 Preventing Supabase auth override of test authentication");
     return;
   }
-  
-  console.log('🔐 Supabase auth state change:', authState);
-  
+
+  console.log("🔐 Supabase auth state change:", authState);
+
   // Convert profile to legacy userInfo format for compatibility
-  const userInfo = authState.profile ? {
-    username: authState.profile.champs_username || 
-              authState.profile.username || 
-              authState.profile.real_name || 
-              'DefaultUser123',
-    avatar: authState.profile.profile_picture || authState.profile.avatar_url
-  } : null;
+  const userInfo = authState.profile
+    ? {
+        username:
+          authState.profile.champs_username ||
+          authState.profile.username ||
+          authState.profile.real_name ||
+          "DefaultUser123",
+        avatar:
+          authState.profile.profile_picture || authState.profile.avatar_url,
+      }
+    : null;
+
+  console.log("🔐 Setting auth state with userInfo:", userInfo);
 
   setState({
     isLoggedIn: authState.isLoggedIn,
@@ -240,9 +302,9 @@ authService.onAuthStateChange((authState: SupabaseAuthState) => {
     profile: authState.profile,
     session: authState.session,
     loading: authState.loading,
-    authType: authState.isLoggedIn ? 'supabase' : null,
+    authType: authState.isLoggedIn ? "supabase" : null,
     userInfo, // For backward compatibility
   });
 });
 
-export default useAuth; 
+export default useAuth;

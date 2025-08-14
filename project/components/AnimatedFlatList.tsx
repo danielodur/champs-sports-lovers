@@ -1,9 +1,19 @@
-import React, { forwardRef, useCallback } from 'react';
-import { FlatList, FlatListProps, ListRenderItem, ViewStyle, RefreshControl, Text, View, StyleSheet } from 'react-native';
-import { RotateCcw } from 'lucide-react-native';
-import { Match } from '@/types/match';
+import React, { forwardRef, useCallback } from "react";
+import {
+  FlatList,
+  FlatListProps,
+  ListRenderItem,
+  ViewStyle,
+  RefreshControl,
+  Text,
+  View,
+  StyleSheet,
+} from "react-native";
+import { RotateCcw } from "lucide-react-native";
+import { Match } from "@/types/match";
 
-interface AnimatedFlatListProps extends Omit<FlatListProps<Match>, 'data' | 'renderItem'> {
+interface AnimatedFlatListProps
+  extends Omit<FlatListProps<Match>, "data" | "renderItem"> {
   data: Match[];
   renderItem: ListRenderItem<Match>;
   refreshing?: boolean;
@@ -13,32 +23,42 @@ interface AnimatedFlatListProps extends Omit<FlatListProps<Match>, 'data' | 'ren
 }
 
 const AnimatedFlatList = forwardRef<FlatList<Match>, AnimatedFlatListProps>(
-  ({ data, renderItem, refreshing, onRefresh, theme, style, ...props }, ref) => {
-    
+  (
+    { data, renderItem, refreshing, onRefresh, theme, style, ...props },
+    ref
+  ) => {
     // Optimize item layout calculation for smooth scrolling
-    const getItemLayout = useCallback((data: ArrayLike<Match> | null | undefined, index: number) => ({
-      length: 120, // Fixed item height for consistent layout
-      offset: 120 * index,
-      index,
-    }), []);
+    const getItemLayout = useCallback(
+      (data: ArrayLike<Match> | null | undefined, index: number) => ({
+        length: 120, // Fixed item height for consistent layout
+        offset: 120 * index,
+        index,
+      }),
+      []
+    );
 
     // Optimize key extraction
     const keyExtractor = useCallback((item: Match) => item.id, []);
 
     // Custom refresh control with English text and loading icon
-    const renderRefreshControl = useCallback(() => (
-      <RefreshControl
-        refreshing={refreshing || false}
-        onRefresh={onRefresh}
-        colors={['#FF4444']}
-        tintColor={'#FF4444'}
-        titleColor={theme?.colors?.text || '#000000'}
-        title={refreshing ? 'Updating matches...' : 'Pull to refresh'}
-        progressBackgroundColor={theme?.colors?.backgroundSecondary || '#FFFFFF'}
-        // Enhanced pull-to-refresh experience
-        progressViewOffset={20}
-      />
-    ), [refreshing, onRefresh, theme]);
+    const renderRefreshControl = useCallback(
+      () => (
+        <RefreshControl
+          refreshing={refreshing || false}
+          onRefresh={onRefresh}
+          colors={["#FF4444"]}
+          tintColor={"#FF4444"}
+          titleColor={theme?.colors?.text || "#000000"}
+          title={refreshing ? "Updating matches..." : "Pull to refresh"}
+          progressBackgroundColor={
+            theme?.colors?.backgroundSecondary || "#FFFFFF"
+          }
+          // Enhanced pull-to-refresh experience
+          progressViewOffset={20}
+        />
+      ),
+      [refreshing, onRefresh, theme]
+    );
 
     return (
       <FlatList
@@ -62,13 +82,21 @@ const AnimatedFlatList = forwardRef<FlatList<Match>, AnimatedFlatListProps>(
         // Pull-to-refresh styling
         contentContainerStyle={[
           style,
-          data.length === 0 && styles.emptyContainer
+          data.length === 0 && styles.emptyContainer,
         ]}
         // Custom empty state
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <RotateCcw size={48} color={theme?.colors?.textSecondary || '#999999'} />
-            <Text style={[styles.emptyText, { color: theme?.colors?.text || '#000000' }]}>
+            <RotateCcw
+              size={48}
+              color={theme?.colors?.textSecondary || "#999999"}
+            />
+            <Text
+              style={[
+                styles.emptyText,
+                { color: theme?.colors?.text || "#000000" },
+              ]}
+            >
               Pull down to refresh matches
             </Text>
           </View>
@@ -82,25 +110,25 @@ const AnimatedFlatList = forwardRef<FlatList<Match>, AnimatedFlatListProps>(
 const styles = StyleSheet.create({
   emptyContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
   },
   emptyState: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 60,
     minHeight: 300,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
 
-AnimatedFlatList.displayName = 'AnimatedFlatList';
+AnimatedFlatList.displayName = "AnimatedFlatList";
 
-export default AnimatedFlatList; 
+export default AnimatedFlatList;
