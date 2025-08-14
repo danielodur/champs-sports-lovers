@@ -30,6 +30,7 @@
       "supabaseUrl": "EXPO_PUBLIC_SUPABASE_URL",
       "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_ANON_KEY",
       "supabaseRedirectUrl": "EXPO_PUBLIC_SUPABASE_REDIRECT_URL",
+      "passwordResetWebsite": "EXPO_PUBLIC_PASSWORD_RESET_WEBSITE",
       "router": {
         "origin": false
       },

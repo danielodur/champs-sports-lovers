@@ -11,6 +11,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import {
   GoogleSignin,
@@ -330,8 +331,37 @@ export default function LoginScreen() {
   };
 
   // Handle forgot password
-  const handleForgotPassword = () => {
-    router.push("/forgot-password");
+  const handleForgotPassword = async () => {
+    try {
+      // Get the password reset website URL from environment variables
+      const passwordResetUrl =
+        process.env.EXPO_PUBLIC_PASSWORD_RESET_WEBSITE! ||
+        "http://localhost:3000";
+
+      console.log("🔐 Opening password reset website:", passwordResetUrl);
+
+      // Check if the URL can be opened
+      const canOpen = await Linking.canOpenURL(passwordResetUrl);
+
+      if (canOpen) {
+        await Linking.openURL(passwordResetUrl);
+        console.log("✅ Password reset website opened successfully");
+      } else {
+        console.log("⚠️ Cannot open URL, trying fallback");
+        // Fallback to localhost for development
+        await Linking.openURL("http://localhost:3000");
+      }
+    } catch (error) {
+      console.error("❌ Error opening password reset website:", error);
+      Alert.alert(
+        "Password Reset",
+        "Unable to open password reset website. Please make sure the website is running or contact support.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Try Again", onPress: handleForgotPassword },
+        ]
+      );
+    }
   };
 
   return (
