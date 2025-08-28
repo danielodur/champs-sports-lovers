@@ -6,7 +6,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { Match } from "@/types/match";
 import { usePathname, useRouter } from "expo-router";
 import teamLogoService from "@/services/teamLogoService";
-import { leagueNormalizationService } from "@/services/leagueNormalizationService";
+// Removed leagueNormalizationService import - using API league names directly
 import { favoritesService } from "@/services/favoritesService";
 
 interface CompetitionMatchListProps {
@@ -80,241 +80,8 @@ const groupByCompetition = (matches: Match[]) => {
   const groups: { [competition: string]: Match[] } = {};
 
   matches.forEach((match) => {
-    // Use normalized league name as competition name
-    const teamNames = `${match.home.name} ${match.away.name}`;
-
-    // Get normalized league name with better error handling
-    let competitionName = "";
-
-    try {
-      // First, try to normalize the league name using the service
-      if (
-        match.league &&
-        match.league.trim() !== "" &&
-        match.league !== "Unknown League"
-      ) {
-        const normalizedName = leagueNormalizationService.normalizeLeagueName(
-          match.league,
-          teamNames
-        );
-
-        // If normalization was successful and returned a meaningful name
-        if (
-          normalizedName &&
-          normalizedName.trim() !== "" &&
-          normalizedName !== "Unknown Competition"
-        ) {
-          competitionName = normalizedName;
-        } else {
-          // If normalization failed, use the original league name
-          competitionName = match.league;
-        }
-      } else {
-        // If no league name, try to detect from team names
-        competitionName = "";
-      }
-    } catch (error) {
-      // If normalization throws an error, use the original league name
-      competitionName = match.league || "";
-    }
-
-    // If we still don't have a meaningful competition name, try to create one
-    if (
-      !competitionName ||
-      competitionName.trim() === "" ||
-      competitionName === "Unknown League" ||
-      competitionName === "Unknown Competition"
-    ) {
-      // Try to detect from team names or create a fallback
-      if (teamNames && teamNames.trim() !== "") {
-        // Look for country indicators in team names
-        const lowerTeamNames = teamNames.toLowerCase();
-
-        // Check for common country indicators in team names
-        if (
-          lowerTeamNames.includes("england") ||
-          lowerTeamNames.includes("manchester") ||
-          lowerTeamNames.includes("liverpool") ||
-          lowerTeamNames.includes("london") ||
-          lowerTeamNames.includes("chelsea") ||
-          lowerTeamNames.includes("arsenal")
-        ) {
-          competitionName = "English Competition";
-        } else if (
-          lowerTeamNames.includes("spain") ||
-          lowerTeamNames.includes("madrid") ||
-          lowerTeamNames.includes("barcelona") ||
-          lowerTeamNames.includes("valencia") ||
-          lowerTeamNames.includes("sevilla")
-        ) {
-          competitionName = "Spanish Competition";
-        } else if (
-          lowerTeamNames.includes("germany") ||
-          lowerTeamNames.includes("bayern") ||
-          lowerTeamNames.includes("dortmund") ||
-          lowerTeamNames.includes("leipzig") ||
-          lowerTeamNames.includes("frankfurt")
-        ) {
-          competitionName = "German Competition";
-        } else if (
-          lowerTeamNames.includes("italy") ||
-          lowerTeamNames.includes("milan") ||
-          lowerTeamNames.includes("rome") ||
-          lowerTeamNames.includes("juventus") ||
-          lowerTeamNames.includes("napoli")
-        ) {
-          competitionName = "Italian Competition";
-        } else if (
-          lowerTeamNames.includes("france") ||
-          lowerTeamNames.includes("paris") ||
-          lowerTeamNames.includes("lyon") ||
-          lowerTeamNames.includes("marseille") ||
-          lowerTeamNames.includes("monaco")
-        ) {
-          competitionName = "French Competition";
-        } else if (
-          lowerTeamNames.includes("portugal") ||
-          lowerTeamNames.includes("porto") ||
-          lowerTeamNames.includes("benfica") ||
-          lowerTeamNames.includes("sporting")
-        ) {
-          competitionName = "Portuguese Competition";
-        } else if (
-          lowerTeamNames.includes("netherlands") ||
-          lowerTeamNames.includes("amsterdam") ||
-          lowerTeamNames.includes("rotterdam") ||
-          lowerTeamNames.includes("ajax") ||
-          lowerTeamNames.includes("psv")
-        ) {
-          competitionName = "Dutch Competition";
-        } else if (
-          lowerTeamNames.includes("belgium") ||
-          lowerTeamNames.includes("brussels") ||
-          lowerTeamNames.includes("antwerp") ||
-          lowerTeamNames.includes("club brugge")
-        ) {
-          competitionName = "Belgian Competition";
-        } else if (
-          lowerTeamNames.includes("scotland") ||
-          lowerTeamNames.includes("glasgow") ||
-          lowerTeamNames.includes("edinburgh") ||
-          lowerTeamNames.includes("celtic") ||
-          lowerTeamNames.includes("rangers")
-        ) {
-          competitionName = "Scottish Competition";
-        } else if (
-          lowerTeamNames.includes("switzerland") ||
-          lowerTeamNames.includes("zurich") ||
-          lowerTeamNames.includes("basel") ||
-          lowerTeamNames.includes("young boys")
-        ) {
-          competitionName = "Swiss Competition";
-        } else if (
-          lowerTeamNames.includes("austria") ||
-          lowerTeamNames.includes("vienna") ||
-          lowerTeamNames.includes("salzburg") ||
-          lowerTeamNames.includes("rapid wien")
-        ) {
-          competitionName = "Austrian Competition";
-        } else if (
-          lowerTeamNames.includes("turkey") ||
-          lowerTeamNames.includes("istanbul") ||
-          lowerTeamNames.includes("galatasaray") ||
-          lowerTeamNames.includes("fenerbahce") ||
-          lowerTeamNames.includes("besiktas")
-        ) {
-          competitionName = "Turkish Competition";
-        } else if (
-          lowerTeamNames.includes("greece") ||
-          lowerTeamNames.includes("athens") ||
-          lowerTeamNames.includes("olympiacos") ||
-          lowerTeamNames.includes("panathinaikos")
-        ) {
-          competitionName = "Greek Competition";
-        } else if (
-          lowerTeamNames.includes("russia") ||
-          lowerTeamNames.includes("moscow") ||
-          lowerTeamNames.includes("spartak") ||
-          lowerTeamNames.includes("lokomotiv")
-        ) {
-          competitionName = "Russian Competition";
-        } else if (
-          lowerTeamNames.includes("ukraine") ||
-          lowerTeamNames.includes("kiev") ||
-          lowerTeamNames.includes("shakhtar") ||
-          lowerTeamNames.includes("dynamo")
-        ) {
-          competitionName = "Ukrainian Competition";
-        } else if (
-          lowerTeamNames.includes("poland") ||
-          lowerTeamNames.includes("warsaw") ||
-          lowerTeamNames.includes("legia") ||
-          lowerTeamNames.includes("wisla")
-        ) {
-          competitionName = "Polish Competition";
-        } else if (
-          lowerTeamNames.includes("czech") ||
-          lowerTeamNames.includes("prague") ||
-          lowerTeamNames.includes("sparta") ||
-          lowerTeamNames.includes("slavia")
-        ) {
-          competitionName = "Czech Competition";
-        } else if (
-          lowerTeamNames.includes("hungary") ||
-          lowerTeamNames.includes("budapest") ||
-          lowerTeamNames.includes("ferencvaros") ||
-          lowerTeamNames.includes("honved")
-        ) {
-          competitionName = "Hungarian Competition";
-        } else if (
-          lowerTeamNames.includes("romania") ||
-          lowerTeamNames.includes("bucharest") ||
-          lowerTeamNames.includes("steaua") ||
-          lowerTeamNames.includes("dinamo")
-        ) {
-          competitionName = "Romanian Competition";
-        } else if (
-          lowerTeamNames.includes("bulgaria") ||
-          lowerTeamNames.includes("sofia") ||
-          lowerTeamNames.includes("levski") ||
-          lowerTeamNames.includes("cska")
-        ) {
-          competitionName = "Bulgarian Competition";
-        } else if (
-          lowerTeamNames.includes("serbia") ||
-          lowerTeamNames.includes("belgrade") ||
-          lowerTeamNames.includes("partizan") ||
-          lowerTeamNames.includes("red star")
-        ) {
-          competitionName = "Serbian Competition";
-        } else if (
-          lowerTeamNames.includes("croatia") ||
-          lowerTeamNames.includes("zagreb") ||
-          lowerTeamNames.includes("dinamo") ||
-          lowerTeamNames.includes("hajduk")
-        ) {
-          competitionName = "Croatian Competition";
-        } else if (
-          lowerTeamNames.includes("slovenia") ||
-          lowerTeamNames.includes("ljubljana") ||
-          lowerTeamNames.includes("maribor") ||
-          lowerTeamNames.includes("olimpija")
-        ) {
-          competitionName = "Slovenian Competition";
-        } else if (
-          lowerTeamNames.includes("slovakia") ||
-          lowerTeamNames.includes("bratislava") ||
-          lowerTeamNames.includes("slovan") ||
-          lowerTeamNames.includes("zilina")
-        ) {
-          competitionName = "Slovak Competition";
-        } else {
-          competitionName = "Other Competition";
-        }
-      } else {
-        competitionName = "Other Competition";
-      }
-    }
+    // Use the league name directly from the API data
+    let competitionName = match.league || "Other Competition";
 
     // Clean up the competition name - capitalize first letter of each word
     competitionName = competitionName
@@ -443,14 +210,17 @@ export default function CompetitionMatchList({
 
   const handleMatchPress = useCallback(
     (match: Match) => {
-      const enhancedHomeLogo = teamLogoService.getOfficialTeamLogo(
-        match.home.name,
-        match.league
-      );
-      const enhancedAwayLogo = teamLogoService.getOfficialTeamLogo(
-        match.away.name,
-        match.league
-      );
+      // Using API Sports logos directly from match data
+      const enhancedHomeLogo =
+        match.home.logo ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          match.home.name.charAt(0)
+        )}&background=FFD700&color=000000&size=128&rounded=true&font-size=0.6`;
+      const enhancedAwayLogo =
+        match.away.logo ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+          match.away.name.charAt(0)
+        )}&background=9CA3AF&color=FFFFFF&size=128&rounded=true&font-size=0.6`;
 
       router.push({
         pathname: "/match-details-new",

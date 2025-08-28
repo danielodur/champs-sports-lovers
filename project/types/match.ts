@@ -2,6 +2,7 @@ interface Team {
   name: string;
   rank?: number | null;
   logo?: string;
+  score?: number;
   corners?: number;
   yellowCards?: number;
   redCards?: number;
@@ -14,7 +15,7 @@ export interface Match {
   id: string;
   sport: string;
   league: string;
-  status: 'live' | 'finished' | 'upcoming';
+  status: "live" | "finished" | "upcoming";
   statusText: string;
   startTime: string;
   time?: string; // Match minute for live matches (e.g., "45", "90+2")
@@ -25,4 +26,5 @@ export interface Match {
   viewers: string;
   hasVideo: boolean;
   isFavorite: boolean;
+  addedTime: string;
 }
