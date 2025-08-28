@@ -88,10 +88,6 @@ class FavoritesService {
         typeof match.id !== "string" ||
         match.id.trim() === ""
       ) {
-        console.error(
-          "❌ FAVORITES SERVICE: INVALID MATCH - missing or invalid ID"
-        );
-        console.error("❌ FAVORITES SERVICE: Received match:", match);
         throw new Error("Invalid match data: missing or invalid ID");
       }
 

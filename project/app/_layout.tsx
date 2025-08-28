@@ -27,6 +27,11 @@ import {
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
 
+import { LogBox } from "react-native";
+
+// Make sure source maps are enabled
+LogBox.ignoreLogs([]); // resets ignores
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 

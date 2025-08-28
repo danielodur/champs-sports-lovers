@@ -58,7 +58,8 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES"
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/images/favicon.png",
@@ -84,7 +85,13 @@
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",
-          "color": "#ffffff"
+          "color": "#ffffff",
+          "androidMode": "default",
+          "androidCollapsedTitle": "New Notification",
+          "iosDisplayInForeground": true,
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          }
         }
       ],
       [
