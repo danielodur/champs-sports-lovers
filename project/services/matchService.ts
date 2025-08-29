@@ -19,19 +19,19 @@ const ALL_CACHE_DURATION = 900000; // 15 minutes for 'all' filter (since it's co
 
 // Initialize API Sports service
 const apiSportsService = createApiSportsService(
-  process.env.EXPO_PUBLIC_RAPID_API_KEY_PRO!,
+  process.env.EXPO_PUBLIC_API_SPORT_KEY!,
   {
     enableCaching: true,
     cacheExpiry: 5 * 60 * 1000, // 5 minutes
     retryAttempts: 3,
     timeout: 10000,
-  }
+  },
 );
 
 // Test function to verify API Sports service
 async function testApiSportsService() {
   try {
-    if (!process.env.EXPO_PUBLIC_RAPID_API_KEY_PRO) {
+    if (!process.env.EXPO_PUBLIC_API_SPORT_KEY) {
       return false;
     }
 
@@ -42,7 +42,7 @@ async function testApiSportsService() {
       undefined,
       undefined,
       undefined,
-      undefined
+      undefined,
     );
     const testFixtures = testFixturesResponse.response || [];
 
@@ -63,7 +63,7 @@ const PRELOAD_FILTERS = ["all", "live", "fixture"];
 
 // Subscribe to match updates
 export function subscribeToMatchUpdates(
-  callback: MatchUpdateCallback
+  callback: MatchUpdateCallback,
 ): () => void {
   subscribers.add(callback);
   return () => subscribers.delete(callback);
@@ -83,32 +83,34 @@ function notifySubscribers(matches: Match[]): void {
 // Convert API Sports fixture to new Match format
 function convertFixtureToMatch(fixture: any): Match {
   const isLive =
-    fixture.status.short === "LIVE" || fixture.status.short === "HT";
+    fixture.fixture.status.short === "1H" ||
+    fixture.fixture.status.short === "HT" ||
+    fixture.fixture.status.short === "2H";
   const isFinished =
-    fixture.status.short === "FT" ||
-    fixture.status.short === "AET" ||
-    fixture.status.short === "PEN";
+    fixture.fixture.status.short === "FT" ||
+    fixture.fixture.status.short === "AET" ||
+    fixture.fixture.status.short === "PEN";
 
   let status: "live" | "finished" | "upcoming" = "upcoming";
   if (isLive) status = "live";
   else if (isFinished) status = "finished";
 
-  let statusText = fixture.status.long || fixture.status.short;
-  if (isLive && fixture.status.elapsed) {
-    statusText = `${fixture.status.elapsed}'`;
+  let statusText = fixture.fixture.status.long || fixture.fixture.status.short;
+  if (isLive && fixture.fixture.status.elapsed) {
+    statusText = `${fixture.fixture.status.elapsed}'`;
   }
 
   let time: string | undefined;
-  if (isLive && fixture.status.elapsed) {
-    time = fixture.status.elapsed.toString();
+  if (isLive && fixture.fixture.status.elapsed) {
+    time = fixture.fixture.status.elapsed.toString();
   }
 
-  const startTime = fixture.date;
+  const startTime = fixture.fixture.date;
   const score = `${fixture.goals.home || 0}-${fixture.goals.away || 0}`;
   const halfTimeScore = score; // API Sports doesn't provide halftime score in this structure
 
   const convertedMatch = {
-    id: fixture.id.toString(),
+    id: fixture.fixture.id.toString(),
     sport: "football",
     league: fixture.league.name,
     status,
@@ -130,6 +132,12 @@ function convertFixtureToMatch(fixture: any): Match {
     viewers: "0",
     hasVideo: false,
     isFavorite: false,
+    addedTime:
+      isLive &&
+      fixture.fixture.status.elapsed &&
+      fixture.fixture.status.elapsed > 45
+        ? "+2"
+        : "",
   };
 
   return convertedMatch;
@@ -140,7 +148,7 @@ async function fetchMatchesFromAPI(
   sport: string,
   filter: string,
   selectedDate?: string,
-  cacheKey?: string
+  cacheKey?: string,
 ): Promise<Match[]> {
   const key = cacheKey || `${sport}-${filter}-${selectedDate || "today"}`;
 
@@ -158,7 +166,7 @@ async function fetchMatchesFromAPI(
 export async function fetchMatches(
   sport: string,
   filter: string,
-  selectedDate?: string
+  selectedDate?: string,
 ): Promise<Match[]> {
   try {
     // Test API Sports service first
@@ -210,7 +218,7 @@ export async function fetchMatches(
 async function performAPIFetch(
   sport: string,
   filter: string,
-  selectedDate?: string
+  selectedDate?: string,
 ): Promise<Match[]> {
   try {
     const cacheKey = `${sport}-${filter}-${selectedDate || "today"}`;
@@ -248,26 +256,26 @@ async function performAPIFetch(
               undefined,
               undefined,
               undefined,
-              "all"
+              "all",
             ),
             apiSportsService.getFixtures(
               undefined,
               undefined,
               undefined,
-              today
+              today,
             ),
             apiSportsService.getFixtures(
               undefined,
               undefined,
               undefined,
-              tomorrow
+              tomorrow,
             ),
             apiSportsService.getFixtures(
               undefined,
               undefined,
               undefined,
               undefined,
-              "FT"
+              "FT",
             ),
           ]);
 
@@ -280,7 +288,7 @@ async function performAPIFetch(
             `🔴 LIVE: ${liveMatches.length || 0} matches`,
             `📅 TODAY FIXTURES: ${todayFixtures.length || 0} matches`,
             `📅 TOMORROW FIXTURES: ${tomorrowFixtures.length || 0} matches`,
-            `🏁 FINISHED: ${finishedMatches.length || 0} matches`
+            `🏁 FINISHED: ${finishedMatches.length || 0} matches`,
           );
 
           // ✅ COMBINE ESSENTIAL DATA - Fast and comprehensive
@@ -312,7 +320,7 @@ async function performAPIFetch(
             undefined,
             undefined,
             undefined,
-            "all"
+            "all",
           );
           apiMatches = liveResponse.response || [];
         } catch (error) {
@@ -327,7 +335,7 @@ async function performAPIFetch(
               undefined,
               undefined,
               undefined,
-              selectedDate
+              selectedDate,
             );
             apiMatches = fixturesResponse.response || [];
           } else {
@@ -337,7 +345,7 @@ async function performAPIFetch(
               undefined,
               undefined,
               undefined,
-              today
+              today,
             );
             apiMatches = fixturesResponse.response || [];
           }
@@ -354,14 +362,14 @@ async function performAPIFetch(
               undefined,
               undefined,
               undefined,
-              selectedDate
+              selectedDate,
             );
             const fixtures = fixturesResponse.response || [];
             apiMatches = fixtures.filter(
               (match: any) =>
                 match.status.short === "FT" ||
                 match.status.short === "AET" ||
-                match.status.short === "PEN"
+                match.status.short === "PEN",
             );
           } else {
             // Get recent finished matches
@@ -370,7 +378,7 @@ async function performAPIFetch(
               undefined,
               undefined,
               undefined,
-              "FT"
+              "FT",
             );
             apiMatches = finishedResponse.response || [];
           }
@@ -422,7 +430,7 @@ async function enhanceMatchesWithRankings(matches: Match[]): Promise<Match[]> {
     }));
 
     const rankedCount = rankedMatches.filter(
-      (m) => m.home.rank || m.away.rank
+      (m) => m.home.rank || m.away.rank,
     ).length;
 
     return rankedMatches;
@@ -553,7 +561,7 @@ function sortMatches(matches: Match[], filter: string): Match[] {
     console.log(
       `${index + 1}. ${timeStr} | ${statusInfo} | ${match.home.name} vs ${
         match.away.name
-      }`
+      }`,
     );
   });
 
@@ -569,7 +577,7 @@ export async function fetchHotMatches(
     | "champions"
     | "nba"
     | "finished"
-    | "uganda"
+    | "uganda",
 ): Promise<Match[]> {
   try {
     let hotMatches: any[] = [];
@@ -583,7 +591,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "all"
+          "all",
         );
         hotMatches = liveResponse.response || [];
         break;
@@ -595,7 +603,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "upcoming"
+          "upcoming",
         );
         hotMatches = upcomingResponse.response || [];
         break;
@@ -608,7 +616,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "all"
+          "all",
         );
         const allPremierMatches = allPremierResponse.response || [];
         const { leagueNormalizationService } = await import(
@@ -616,7 +624,7 @@ export async function fetchHotMatches(
         );
         hotMatches = leagueNormalizationService.filterMatchesForTopCategory(
           allPremierMatches,
-          "premier"
+          "premier",
         );
 
         break;
@@ -629,7 +637,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "all"
+          "all",
         );
         hotMatches = championsResponse.response || [];
         break;
@@ -642,7 +650,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "all"
+          "all",
         );
         hotMatches = nbaResponse.response || [];
         break;
@@ -653,7 +661,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "FT"
+          "FT",
         );
         hotMatches = finishedResponse.response || [];
         break;
@@ -666,7 +674,7 @@ export async function fetchHotMatches(
           undefined,
           undefined,
           undefined,
-          "all"
+          "all",
         );
         const allUgandaMatches = allUgandaResponse.response || [];
         const { leagueNormalizationService: ugandaService } = await import(
@@ -674,7 +682,7 @@ export async function fetchHotMatches(
         );
         hotMatches = ugandaService.filterMatchesForTopCategory(
           allUgandaMatches,
-          "uganda"
+          "uganda",
         );
 
         break;
@@ -762,7 +770,7 @@ export function clearMatchCache(): void {
 // Clear only live matches cache to force fresh fetch
 export function clearLiveMatchCache(): void {
   const keysToDelete = Array.from(cache.keys()).filter((key) =>
-    key.includes("-live-")
+    key.includes("-live-"),
   );
   keysToDelete.forEach((key) => cache.delete(key));
   apiSportsService.clearCache();
@@ -795,12 +803,15 @@ export async function syncMatchWithSupabase(match: Fixture) {
 
     // Calculate current minute based on status
     let currentMinute = "0";
-    if (match.status.short === "LIVE") {
+    if (
+      match.fixture.status.short === "1H" ||
+      match.fixture.status.short === "2H"
+    ) {
       // For live matches, calculate realistic minute based on score and time
       const now = new Date();
-      const matchStart = new Date(match.date);
+      const matchStart = new Date(match.fixture.date);
       const minutesElapsed = Math.floor(
-        (now.getTime() - matchStart.getTime()) / (1000 * 60)
+        (now.getTime() - matchStart.getTime()) / (1000 * 60),
       );
 
       if (minutesElapsed <= 45) {
@@ -810,7 +821,7 @@ export async function syncMatchWithSupabase(match: Fixture) {
       } else {
         currentMinute = Math.min(minutesElapsed - 15, 90).toString(); // Account for 15min break
       }
-    } else if (match.status.short === "FT") {
+    } else if (match.fixture.status.short === "FT") {
       currentMinute = "FT";
     }
 
@@ -819,16 +830,20 @@ export async function syncMatchWithSupabase(match: Fixture) {
       .from("live_match_updates")
       .upsert(
         {
-          match_id: match.id,
+          match_id: match.fixture.id,
           home_score: homeScore,
           away_score: awayScore,
-          status: match.status.short === "LIVE" ? "live" : "finished",
+          status:
+            match.fixture.status.short === "1H" ||
+            match.fixture.status.short === "2H"
+              ? "live"
+              : "finished",
           minute: currentMinute,
           last_updated: new Date().toISOString(),
         },
         {
           onConflict: "match_id",
-        }
+        },
       );
 
     // Silent handling - no console errors for network issues
@@ -847,7 +862,7 @@ export async function syncMatchWithSupabase(match: Fixture) {
 // ✅ NEW: SYNC MATCH EVENTS to Supabase
 export async function syncMatchEventsWithSupabase(
   matchId: string,
-  events: any[]
+  events: any[],
 ) {
   try {
     // Silent sync - avoid user-facing error messages
@@ -861,8 +876,8 @@ export async function syncMatchEventsWithSupabase(
           event.type === "yellow_card"
             ? "card"
             : event.type === "red_card"
-            ? "card"
-            : event.type,
+              ? "card"
+              : event.type,
         team_type: event.team,
         player_name: event.player || "Player",
         minute: event.minute.toString(),
@@ -938,7 +953,7 @@ export async function getRealTimeMatchData(matchId: string) {
 export async function fetchEnhancedMatches(
   sport: string,
   filter: string,
-  selectedDate?: string
+  selectedDate?: string,
 ): Promise<Match[]> {
   try {
     // First, get matches from the regular API
@@ -954,7 +969,63 @@ export async function fetchEnhancedMatches(
         apiMatches.map(async (match) => {
           try {
             // Sync current match data to Supabase first
-            await syncMatchWithSupabase(match);
+            // Convert Match to Fixture format for syncMatchWithSupabase
+            const fixture: Fixture = {
+              fixture: {
+                id: parseInt(match.id),
+                referee: null,
+                timezone: "UTC",
+                date: match.startTime,
+                timestamp: Date.parse(match.startTime) / 1000,
+                periods: { first: null, second: null },
+                venue: { id: null, name: null, city: null },
+                status: {
+                  long: match.statusText,
+                  short:
+                    match.status === "live"
+                      ? "1H"
+                      : match.status === "finished"
+                        ? "FT"
+                        : "NS",
+                  elapsed: match.time ? parseInt(match.time) : null,
+                  extra: null,
+                },
+              },
+              league: {
+                id: null,
+                name: match.league,
+                country: null,
+                logo: null,
+                flag: null,
+              },
+              teams: {
+                home: {
+                  id: null,
+                  name: match.home.name,
+                  logo: match.home.logo || null,
+                },
+                away: {
+                  id: null,
+                  name: match.away.name,
+                  logo: match.away.logo || null,
+                },
+              },
+              goals: {
+                home: match.home.score || null,
+                away: match.away.score || null,
+              },
+              score: {
+                halftime: { home: null, away: null },
+                fulltime: {
+                  home: match.home.score || null,
+                  away: match.away.score || null,
+                },
+                extratime: { home: null, away: null },
+                penalty: { home: null, away: null },
+              },
+              events: null,
+            };
+            await syncMatchWithSupabase(fixture);
 
             // Get any existing real-time data
             const realTimeData = await getRealTimeMatchData(match.id);
@@ -974,10 +1045,10 @@ export async function fetchEnhancedMatches(
                   liveData.minute === "FT"
                     ? "FT"
                     : liveData.minute === "HT"
-                    ? "HT"
-                    : liveData.status === "live"
-                    ? `${liveData.minute}'`
-                    : "",
+                      ? "HT"
+                      : liveData.status === "live"
+                        ? `${liveData.minute}'`
+                        : "",
               };
 
               return updatedMatch;
@@ -987,7 +1058,7 @@ export async function fetchEnhancedMatches(
           } catch (error) {
             return match;
           }
-        })
+        }),
       );
 
       return enhancedMatches;
@@ -1015,13 +1086,13 @@ export async function preloadMatchData(): Promise<void> {
         } catch (error) {
           return [];
         }
-      })
+      }),
     );
 
     const results = await Promise.all(preloadPromises);
     const totalMatches = results.reduce(
       (sum, matches) => sum + matches.length,
-      0
+      0,
     );
   } catch (error) {
   } finally {
@@ -1039,7 +1110,7 @@ export async function populateSupabaseWithRealData() {
       undefined,
       undefined,
       undefined,
-      "all"
+      "all",
     );
     const liveMatches = liveMatchesResponse.response || [];
 
@@ -1051,26 +1122,29 @@ export async function populateSupabaseWithRealData() {
       try {
         // Convert LiveScore to Match format
         const match: Fixture = {
-          id: liveMatch.id,
-          sport: "football",
-          league: liveMatch.league as FootballLeague,
-          status: {
-            long: liveMatch.status.long,
-            short: liveMatch.status.short,
-            elapsed: liveMatch.status.elapsed,
-            extra: liveMatch.status.extra,
+          fixture: {
+            id: liveMatch.fixture.id,
+            referee: liveMatch.fixture.referee,
+            timezone: liveMatch.fixture.timezone,
+            date: liveMatch.fixture.date,
+            timestamp: liveMatch.fixture.timestamp,
+            periods: {
+              first: liveMatch.fixture.periods.first,
+              second: liveMatch.fixture.periods.second,
+            },
+            venue: {
+              id: liveMatch.fixture.venue.id,
+              name: liveMatch.fixture.venue.name,
+              city: liveMatch.fixture.venue.city,
+            },
+            status: {
+              long: liveMatch.fixture.status.long,
+              short: liveMatch.fixture.status.short,
+              elapsed: liveMatch.fixture.status.elapsed,
+              extra: liveMatch.fixture.status.extra,
+            },
           },
-          date: liveMatch.date,
-          timestamp: liveMatch.timestamp,
-          periods: {
-            first: liveMatch.periods.first,
-            second: liveMatch.periods.second,
-          },
-          venue: {
-            id: liveMatch.venue.id,
-            name: liveMatch.venue.name,
-            city: liveMatch.venue.city,
-          },
+          league: liveMatch.league,
           teams: {
             home: liveMatch.teams.home,
             away: liveMatch.teams.away,
@@ -1098,19 +1172,48 @@ export async function populateSupabaseWithRealData() {
             },
           },
           events: liveMatch.events,
-          viewers: "0",
-          hasVideo: false,
-          isFavorite: false,
         };
 
         // Sync to Supabase
         await syncMatchWithSupabase(match);
 
         // Generate and sync events
-        if (match.status === "live" || match.status === "finished") {
-          // Generate realistic events based on the match
-          const events = generateEventsFromMatch(match);
-          await syncMatchEventsWithSupabase(match.id, events);
+        if (
+          match.fixture.status.short === "1H" ||
+          match.fixture.status.short === "2H" ||
+          match.fixture.status.short === "FT"
+        ) {
+          // Convert Fixture to Match format for generateEventsFromMatch
+          const matchForEvents: Match = {
+            id: match.fixture.id.toString(),
+            sport: "football",
+            league: match.league.name || "",
+            status: match.fixture.status.short === "FT" ? "finished" : "live",
+            statusText: match.fixture.status.long || "",
+            startTime: match.fixture.date,
+            time: match.fixture.status.elapsed?.toString(),
+            home: {
+              name: match.teams.home.name || "",
+              logo: match.teams.home.logo || undefined,
+              score: match.goals.home || undefined,
+            },
+            away: {
+              name: match.teams.away.name || "",
+              logo: match.teams.away.logo || undefined,
+              score: match.goals.away || undefined,
+            },
+            score: `${match.goals.home || 0}-${match.goals.away || 0}`,
+            halfTimeScore: `${match.score.halftime.home || 0}-${match.score.halftime.away || 0}`,
+            viewers: "0",
+            hasVideo: false,
+            isFavorite: false,
+            addedTime: "",
+          };
+          const events = generateEventsFromMatch(matchForEvents);
+          await syncMatchEventsWithSupabase(
+            match.fixture.id.toString(),
+            events,
+          );
         }
       } catch (error) {}
     }

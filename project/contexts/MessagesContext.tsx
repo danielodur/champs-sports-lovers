@@ -1,10 +1,23 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import * as Notifications from 'expo-notifications';
-import { Platform, Alert, Linking, AppState } from 'react-native';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { Platform, Alert, Linking, AppState } from "react-native";
+
+// Import notifications with proper error handling
+let Notifications: any = null;
+try {
+  Notifications = require("expo-notifications");
+} catch (error) {
+  console.warn("expo-notifications not available:", error);
+}
 
 interface Message {
   id: string;
-  type: 'announcement' | 'comment' | 'like' | 'follow' | 'system';
+  type: "announcement" | "comment" | "like" | "follow" | "system";
   title: string;
   content: string;
   timestamp: string;
@@ -23,12 +36,14 @@ interface MessagesContextType {
   checkNotificationPermission: () => Promise<void>;
 }
 
-const MessagesContext = createContext<MessagesContextType | undefined>(undefined);
+const MessagesContext = createContext<MessagesContextType | undefined>(
+  undefined,
+);
 
 export const useMessages = () => {
   const context = useContext(MessagesContext);
   if (context === undefined) {
-    throw new Error('useMessages must be used within a MessagesProvider');
+    throw new Error("useMessages must be used within a MessagesProvider");
   }
   return context;
 };
@@ -37,93 +52,119 @@ interface MessagesProviderProps {
   children: ReactNode;
 }
 
-export const MessagesProvider: React.FC<MessagesProviderProps> = ({ children }) => {
+export const MessagesProvider: React.FC<MessagesProviderProps> = ({
+  children,
+}) => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
-      type: 'announcement',
-      title: 'Announcement',
-      content: '[Important Reminder] For your account security, if you encounter the following situations, please...',
-      timestamp: '2022/06/10 11:43',
+      id: "1",
+      type: "announcement",
+      title: "Announcement",
+      content:
+        "[Important Reminder] For your account security, if you encounter the following situations, please...",
+      timestamp: "2022/06/10 11:43",
       isRead: false,
       hasRedDot: true,
     },
     {
-      id: '2',
-      type: 'system',
-      title: 'System Notification',
-      content: 'Your account has been successfully verified. Welcome to Champs!',
-      timestamp: '2022/06/09 15:30',
+      id: "2",
+      type: "system",
+      title: "System Notification",
+      content:
+        "Your account has been successfully verified. Welcome to Champs!",
+      timestamp: "2022/06/09 15:30",
       isRead: true,
     },
     {
-      id: '3',
-      type: 'comment',
-      title: 'New Comment',
+      id: "3",
+      type: "comment",
+      title: "New Comment",
       content: 'Someone commented on your post: "Great prediction!"',
-      timestamp: '2022/06/08 20:15',
+      timestamp: "2022/06/08 20:15",
       isRead: true,
     },
   ]);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const unreadCount = messages.filter(msg => !msg.isRead).length;
+  const unreadCount = messages.filter((msg) => !msg.isRead).length;
 
   // Check notification permission on mount and when app becomes active
   useEffect(() => {
     checkNotificationPermission();
-    
+
     const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'active') {
+      if (nextAppState === "active") {
         // App came to foreground, check permissions again
         checkNotificationPermission();
       }
     };
 
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
+
     return () => {
       subscription?.remove();
     };
   }, []);
 
   const checkNotificationPermission = async () => {
+    if (!Notifications?.getPermissionsAsync) {
+      console.warn("Notifications not available");
+      setNotificationsEnabled(false);
+      return;
+    }
+
     try {
       const { status } = await Notifications.getPermissionsAsync();
-      setNotificationsEnabled(status === 'granted');
+      setNotificationsEnabled(status === "granted");
     } catch (error) {
-      console.log('Error checking notification permission:', error);
+      console.log("Error checking notification permission:", error);
       setNotificationsEnabled(false);
     }
   };
 
   const requestNotificationPermission = async () => {
+    if (
+      !Notifications?.getPermissionsAsync ||
+      !Notifications?.requestPermissionsAsync
+    ) {
+      console.warn("Notifications not available");
+      Alert.alert(
+        "Notifications Not Available",
+        "Notification functionality is not available on this platform.",
+      );
+      return;
+    }
+
     try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      
-      if (existingStatus === 'granted') {
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+
+      if (existingStatus === "granted") {
         setNotificationsEnabled(true);
         return;
       }
 
-      if (existingStatus === 'denied') {
+      if (existingStatus === "denied") {
         // Permission was previously denied, need to go to settings
         Alert.alert(
-          'Notifications Disabled',
-          'Notifications are currently disabled for this app. To enable notifications, please go to your device settings.',
+          "Notifications Disabled",
+          "Notifications are currently disabled for this app. To enable notifications, please go to your device settings.",
           [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Open Settings', 
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
               onPress: () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('app-settings:');
+                if (Platform.OS === "ios") {
+                  Linking.openURL("app-settings:");
                 } else {
                   Linking.openSettings();
                 }
-              }
-            }
-          ]
+              },
+            },
+          ],
         );
         return;
       }
@@ -137,59 +178,64 @@ export const MessagesProvider: React.FC<MessagesProviderProps> = ({ children }) 
         },
       });
 
-      if (status === 'granted') {
+      if (status === "granted") {
         setNotificationsEnabled(true);
-      } else if (status === 'denied') {
+      } else if (status === "denied") {
         Alert.alert(
-          'Notification Permission Required',
-          'To receive important updates and messages, please enable notifications in your device settings.',
+          "Notification Permission Required",
+          "To receive important updates and messages, please enable notifications in your device settings.",
           [
-            { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Open Settings', 
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
               onPress: () => {
-                if (Platform.OS === 'ios') {
-                  Linking.openURL('app-settings:');
+                if (Platform.OS === "ios") {
+                  Linking.openURL("app-settings:");
                 } else {
                   Linking.openSettings();
                 }
-              }
-            }
-          ]
+              },
+            },
+          ],
         );
       }
     } catch (error) {
-      console.log('Error requesting notification permission:', error);
-      Alert.alert('Error', 'Failed to request notification permission. Please try again.');
+      console.log("Error requesting notification permission:", error);
+      Alert.alert(
+        "Error",
+        "Failed to request notification permission. Please try again.",
+      );
     }
   };
 
   const markAllAsRead = () => {
-    setMessages(prev => 
-      prev.map(msg => ({ ...msg, isRead: true, hasRedDot: false }))
+    setMessages((prev) =>
+      prev.map((msg) => ({ ...msg, isRead: true, hasRedDot: false })),
     );
   };
 
   const markMessageAsRead = (messageId: string) => {
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId ? { ...msg, isRead: true, hasRedDot: false } : msg
-      )
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, isRead: true, hasRedDot: false } : msg,
+      ),
     );
   };
 
   return (
-    <MessagesContext.Provider value={{
-      messages,
-      setMessages,
-      unreadCount,
-      notificationsEnabled,
-      markAllAsRead,
-      markMessageAsRead,
-      requestNotificationPermission,
-      checkNotificationPermission,
-    }}>
+    <MessagesContext.Provider
+      value={{
+        messages,
+        setMessages,
+        unreadCount,
+        notificationsEnabled,
+        markAllAsRead,
+        markMessageAsRead,
+        requestNotificationPermission,
+        checkNotificationPermission,
+      }}
+    >
       {children}
     </MessagesContext.Provider>
   );
-}; 
+};

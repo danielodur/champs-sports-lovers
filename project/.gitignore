@@ -37,5 +37,23 @@ yarn-error.*
 # TypeScript cache
 *.tsbuildinfo
 
-# VS Code settings (optional, helps teammates)
+# Editor settings and AI configurations
 .vscode/
+.cursor/
+.continue/
+.zed/
+.idea/
+.history/
+
+# AI protection files (keep in repo but ignore changes)
+# .zedrules
+# .zedignore
+# .zedconfig
+
+# Temporary and cache files
+tmp/
+temp/
+.cache/
+logs/
+coverage/
+output/

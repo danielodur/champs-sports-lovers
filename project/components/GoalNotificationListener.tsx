@@ -1,19 +1,27 @@
 import React, { useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
-import * as Notifications from "expo-notifications";
 import { supabase } from "../services/supabaseClient";
 import useAuth from "../hooks/useAuth";
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Import notifications with proper error handling
+let Notifications: any = null;
+try {
+  Notifications = require("expo-notifications");
+  // Configure notification behavior only if notifications are available
+  if (Notifications?.setNotificationHandler) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+} catch (error) {
+  console.warn("expo-notifications not available:", error);
+}
 
 interface GoalNotification {
   id: string;
@@ -37,11 +45,20 @@ export const GoalNotificationListener: React.FC = () => {
   // Request notification permissions
   useEffect(() => {
     const requestPermissions = async () => {
+      if (!Notifications?.getPermissionsAsync) {
+        console.warn("Cannot get notification permissions");
+        return;
+      }
+
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
       if (existingStatus !== "granted") {
+        if (!Notifications?.requestPermissionsAsync) {
+          console.warn("Cannot request notification permissions");
+          return;
+        }
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
@@ -71,7 +88,7 @@ export const GoalNotificationListener: React.FC = () => {
 
     const subscription = AppState.addEventListener(
       "change",
-      handleAppStateChange
+      handleAppStateChange,
     );
     return () => subscription?.remove();
   }, []);
@@ -109,7 +126,7 @@ export const GoalNotificationListener: React.FC = () => {
 
   // Listen to real-time goal notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user || !Notifications) return;
 
     // Subscribe to new goal notifications
     subscription.current = supabase
@@ -128,7 +145,7 @@ export const GoalNotificationListener: React.FC = () => {
 
           // Show local notification
           showLocalNotification(notification);
-        }
+        },
       )
       .subscribe();
 
@@ -166,13 +183,13 @@ export const GoalNotificationListener: React.FC = () => {
   // Listen to notification interactions
   useEffect(() => {
     const notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
+      (notification: any) => {
         console.log("Notification received:", notification);
-      }
+      },
     );
 
     const responseListener =
-      Notifications.addNotificationResponseReceivedListener((response) => {
+      Notifications.addNotificationResponseReceivedListener((response: any) => {
         const data = response.notification.request.content.data;
         console.log("Notification tapped:", data);
 

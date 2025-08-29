@@ -1,26 +1,34 @@
 import React, { useEffect, useState } from "react";
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { supabase } from "../services/supabaseClient";
 import useAuth from "../hooks/useAuth";
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Import notifications with proper error handling
+let Notifications: any = null;
+try {
+  Notifications = require("expo-notifications");
+  // Configure notification behavior only if notifications are available
+  if (Notifications?.setNotificationHandler) {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+} catch (error) {
+  console.warn("expo-notifications not available:", error);
+}
 
 export const FCMTokenManager: React.FC = () => {
   const { user } = useAuth();
   const [fcmToken, setFcmToken] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !Notifications) return;
 
     // Request permissions
     const requestPermissions = async () => {
@@ -29,6 +37,10 @@ export const FCMTokenManager: React.FC = () => {
       let finalStatus = existingStatus;
 
       if (existingStatus !== "granted") {
+        if (!Notifications?.requestPermissionsAsync) {
+          console.warn("Cannot request notification permissions");
+          return;
+        }
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
@@ -67,7 +79,7 @@ export const FCMTokenManager: React.FC = () => {
           },
           {
             onConflict: "user_id",
-          }
+          },
         );
 
         if (error) {
@@ -98,13 +110,13 @@ export const FCMTokenManager: React.FC = () => {
   // Listen to notification interactions
   useEffect(() => {
     const notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
+      (notification: any) => {
         console.log("Notification received:", notification);
-      }
+      },
     );
 
     const responseListener =
-      Notifications.addNotificationResponseReceivedListener((response) => {
+      Notifications.addNotificationResponseReceivedListener((response: any) => {
         const data = response.notification.request.content.data;
         console.log("Notification tapped:", data);
 

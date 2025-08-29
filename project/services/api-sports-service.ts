@@ -4,11 +4,24 @@ import {
   FixtureLeague,
 } from "@/types/football-fixtures-response";
 import goalService, { GoalData } from "./api-sports-football-goal-service";
-import * as Notifications from "expo-notifications";
-
-import * as TaskManager from "expo-task-manager";
-import * as BackgroundFetch from "expo-background-fetch";
+import { SafeNotifications } from "@/utils/notificationUtils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Import task manager and background fetch with proper error handling
+let TaskManager: any = null;
+let BackgroundFetch: any = null;
+
+try {
+  TaskManager = require("expo-task-manager");
+} catch (error) {
+  console.warn("expo-task-manager not available:", error);
+}
+
+try {
+  BackgroundFetch = require("expo-background-fetch");
+} catch (error) {
+  console.warn("expo-background-fetch not available:", error);
+}
 
 const BACKGROUND_TASK = "send-goal-notification-task";
 
@@ -28,7 +41,7 @@ export class ApiSportsError extends Error {
   constructor(
     message: string,
     public statusCode?: number,
-    public response?: any
+    public response?: any,
   ) {
     super(message);
     this.name = "ApiSportsError";
@@ -128,7 +141,7 @@ export class ApiSportsService {
 
   private generateCacheKey(
     endpoint: string,
-    params?: Record<string, any>
+    params?: Record<string, any>,
   ): string {
     const paramString = params ? JSON.stringify(params) : "";
     return `${endpoint}:${paramString}`;
@@ -148,7 +161,7 @@ export class ApiSportsService {
   private async makeRequest(
     endpoint: string,
     params?: Record<string, any>,
-    useCache: boolean = true
+    useCache: boolean = true,
   ): Promise<FootballFixturesResponse> {
     try {
       // Rate limiting
@@ -184,7 +197,7 @@ export class ApiSportsService {
       const controller = new AbortController();
       const timeoutId = setTimeout(
         () => controller.abort(),
-        this.config.timeout
+        this.config.timeout,
       );
 
       const response = await fetch(url.toString(), {
@@ -200,7 +213,7 @@ export class ApiSportsService {
         const retryAfter = response.headers.get("Retry-After");
         throw new RateLimitError(
           "Rate limit exceeded",
-          retryAfter ? parseInt(retryAfter) : undefined
+          retryAfter ? parseInt(retryAfter) : undefined,
         );
       }
 
@@ -211,7 +224,7 @@ export class ApiSportsService {
       if (!response.ok) {
         throw new ApiSportsError(
           `HTTP error! status: ${response.status}`,
-          response.status
+          response.status,
         );
       }
 
@@ -242,7 +255,7 @@ export class ApiSportsService {
   private async retryRequest(
     endpoint: string,
     params?: Record<string, any>,
-    attempt: number = 1
+    attempt: number = 1,
   ): Promise<FootballFixturesResponse> {
     try {
       return await this.makeRequest(endpoint, params);
@@ -297,7 +310,7 @@ export class ApiSportsService {
   // Leagues
   async getLeagues(
     country?: string,
-    season?: number
+    season?: number,
   ): Promise<FixtureLeague[]> {
     const params: Record<string, any> = {};
     if (country) params.country = country;
@@ -308,13 +321,13 @@ export class ApiSportsService {
     // Transform the real API response to our interface format
     if (response.response) {
       const transformedLeagues: FixtureLeague[] = response.response.map(
-        (item: Fixture) => ({
-          id: item.fixture.id || null,
-          name: item.fixture.league.name || null,
-          country: item.fixture.league.country || null,
-          logo: item.fixture.league.logo || null,
-          flag: item.fixture.league.flag || null,
-        })
+        (item: any) => ({
+          id: item.league?.id || null,
+          name: item.league?.name || null,
+          country: item.country?.name || null,
+          logo: item.league?.logo || null,
+          flag: item.country?.flag || null,
+        }),
       );
 
       return transformedLeagues;
@@ -325,7 +338,7 @@ export class ApiSportsService {
 
   async getLeagueById(
     leagueId: number,
-    season?: number
+    season?: number,
   ): Promise<FixtureLeague> {
     const params: Record<string, any> = { id: leagueId };
     if (season) params.season = season;
@@ -342,7 +355,7 @@ export class ApiSportsService {
     season?: number,
     date?: string,
     status?: string,
-    live?: string
+    live?: string,
   ): Promise<FootballFixturesResponse> {
     const params: Record<string, any> = {};
     if (teamId) params.team = teamId;
@@ -359,13 +372,18 @@ export class ApiSportsService {
 
   // Fetch live fixtures and check if there is a new goal event which is not already in the goalData and send a notification if there is for each new goal event in the fixtures
   async fetchLiveFixturesAndCheckForNewGoals() {
+    const safeNotifications = SafeNotifications.getInstance();
+    if (!safeNotifications.isNotificationAvailable()) {
+      console.warn("Notifications not available, skipping goal notifications");
+      return;
+    }
     const fixtures = await this.getFixtures(
       undefined,
       undefined,
       undefined,
       undefined,
       undefined,
-      "all"
+      "all",
     );
 
     // Get old goal data array from async storage
@@ -375,44 +393,72 @@ export class ApiSportsService {
 
     fixtures.response.forEach((fixture) => {
       const goalEvents = fixture.events?.filter(
-        (event) => event.type === "Goal"
+        (event) => event.type === "Goal",
       );
       goalEvents?.forEach(async (event) => {
         if (
           !oldGoalData?.find(
             (goal) =>
-              goal.event.time.elapsed === event.time.elapsed &&
-              goal.fixtureId === fixture.fixture.id
+              goal.events.some(
+                (goalEvent) => goalEvent.time.elapsed === event.time.elapsed,
+              ) && goal.fixtureId === fixture.fixture.id,
           )
         ) {
-          const goalData = { fixtureId: fixture.fixture.id, event: event };
+          const goalData = { fixtureId: fixture.fixture.id, events: [event] };
           // console.log("goalData added", goalData);
           oldGoalData.push(goalData);
           await AsyncStorage.setItem("goalData", JSON.stringify(oldGoalData));
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: "Goal!",
-              body: `${fixture.teams.home.name} [${fixture.goals.home} - ${fixture.goals.away}] ${fixture.teams.away.name} ${event.time.elapsed}' ${event.player.name}`,
-            },
-            trigger: null,
-          });
-          console.log(
-            "Goal notification sent for fixture:",
-            fixture.fixture.id
-          );
+
+          try {
+            const notificationId = await safeNotifications.sendGoalNotification(
+              fixture.teams.home.name || "Home Team",
+              fixture.teams.away.name || "Away Team",
+              fixture.goals.home || 0,
+              fixture.goals.away || 0,
+              `${event.time.elapsed}'`,
+              event.player.name || "Unknown Player",
+            );
+
+            if (notificationId) {
+              console.log(
+                "Goal notification sent for fixture:",
+                fixture.fixture.id,
+                "with ID:",
+                notificationId,
+              );
+            } else {
+              console.log(
+                "Notification not sent, goal data saved for fixture:",
+                fixture.fixture.id,
+              );
+            }
+          } catch (notificationError) {
+            console.warn("Failed to send notification:", notificationError);
+          }
         }
       });
     });
   }
 
   async testNotification() {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Goal!",
-        body: "Test notification",
-      },
-      trigger: null,
-    });
+    const safeNotifications = SafeNotifications.getInstance();
+
+    try {
+      const notificationId = await safeNotifications.sendTestNotification();
+
+      if (notificationId) {
+        console.log("Test notification sent with ID:", notificationId);
+        return true;
+      } else {
+        console.warn(
+          "Test notification not sent - notifications not available",
+        );
+        return false;
+      }
+    } catch (error) {
+      console.warn("Failed to send test notification:", error);
+      return false;
+    }
   }
 
   async getFixtureById(fixtureId: number): Promise<FootballFixturesResponse> {
@@ -451,14 +497,14 @@ export class ApiSportsService {
 // Factory function for easy instantiation
 export function createApiSportsService(
   apiKey?: string,
-  config?: Partial<ApiSportsConfig>
+  config?: Partial<ApiSportsConfig>,
 ): ApiSportsService {
   // Use environment variable as default if no apiKey provided
-  const defaultApiKey = process.env.EXPO_PUBLIC_API_SPORTS_KEY!;
+  const defaultApiKey = process.env.EXPO_PUBLIC_API_SPORT_KEY!;
 
   if (!defaultApiKey) {
     throw new Error(
-      "API key is required. Please set API_SPORTS_KEY in your .env file or pass it as a parameter."
+      "API key is required. Please set EXPO_PUBLIC_API_SPORT_KEY in your .env file or pass it as a parameter.",
     );
   }
 

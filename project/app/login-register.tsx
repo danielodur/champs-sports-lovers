@@ -27,11 +27,25 @@ import useAuth from "@/hooks/useAuth";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import supabase from "@/services/supabaseClient";
 import OAuthWebView from "@/components/OAuthWebView";
+import { SafeNavigation } from "@/utils/navigationUtils";
 
 GoogleSignin.configure({
   scopes: ["https://www.googleapis.com/auth/drive.readonly"],
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
-  offlineAccess: true,
+  iosClientId:
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
+    "65605327855-bbjb8tsm97ee40lquj4053218i1kurt2.apps.googleusercontent.com",
+  offlineAccess: false,
+
+  // If you need offline access, uncomment the following and add your server web client ID:
+  // offlineAccess: true,
+  // serverClientId: process.env.EXPO_PUBLIC_GOOGLE_SERVER_CLIENT_ID,
+
+  // To get a server client ID:
+  // 1. Go to Google Cloud Console
+  // 2. Navigate to APIs & Services → Credentials
+  // 3. Create a new "Web application" client ID
+  // 4. Add it to your .env file as EXPO_PUBLIC_GOOGLE_SERVER_CLIENT_ID
 });
 
 export default function LoginScreen() {
@@ -147,14 +161,14 @@ export default function LoginScreen() {
         if (error) {
           console.error("❌ Supabase sign-in error:", error);
           throw new Error(
-            error.message || "Failed to authenticate with Supabase"
+            error.message || "Failed to authenticate with Supabase",
           );
         }
 
         if (data?.user) {
           console.log(
             "✅ Supabase authentication successful:",
-            data.user.email
+            data.user.email,
           );
           // The auth state change listener will handle navigation
         } else {
@@ -227,7 +241,7 @@ export default function LoginScreen() {
       if (result.error) {
         console.error("Auth error:", result.error);
         setError(
-          result.error.message || `Failed to ${isLogin ? "login" : "register"}`
+          result.error.message || `Failed to ${isLogin ? "login" : "register"}`,
         );
       } else {
         console.log(`✅ ${isLogin ? "Login" : "Registration"} successful`);
@@ -239,12 +253,12 @@ export default function LoginScreen() {
           setIsLogin(true);
           setError(""); // Clear any previous errors
           setSuccessMessage(
-            "Registration successful! Please check your email and verify your account, then sign in."
+            "Registration successful! Please check your email and verify your account, then sign in.",
           );
           Alert.alert(
             "Registration Successful!",
             "Please check your email and click the verification link. Then you can sign in with your email and password.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         }
       }
@@ -359,7 +373,7 @@ export default function LoginScreen() {
         [
           { text: "Cancel", style: "cancel" },
           { text: "Try Again", onPress: handleForgotPassword },
-        ]
+        ],
       );
     }
   };
@@ -376,11 +390,7 @@ export default function LoginScreen() {
           <TouchableOpacity
             onPress={() => {
               // Navigate immediately without timeout
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace("/(tabs)/profile");
-              }
+              SafeNavigation.goBack(router, "/(tabs)/profile", "replace");
             }}
             style={[styles.backButton, { marginTop: 40 }]}
             activeOpacity={0.7}
@@ -720,15 +730,15 @@ export default function LoginScreen() {
           // Provide user-friendly error messages
           if (error.includes("email") || error.includes("Email")) {
             setError(
-              "Social login failed: Please ensure your account has a verified email address. You can also try logging in with Google or Facebook instead."
+              "Social login failed: Please ensure your account has a verified email address. You can also try logging in with Google or Facebook instead.",
             );
           } else if (error.includes("server_error")) {
             setError(
-              "Social login failed: Server error. Please try again later or use a different login method."
+              "Social login failed: Server error. Please try again later or use a different login method.",
             );
           } else if (error.includes("unexpected_failure")) {
             setError(
-              "Social login failed: Please try again or use Google/Facebook login instead."
+              "Social login failed: Please try again or use Google/Facebook login instead.",
             );
           } else {
             setError(`Social login failed: ${error}`);

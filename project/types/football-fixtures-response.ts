@@ -1,6 +1,4 @@
 // RESPONSE EXAMPLE
-import { example } from "./example";
-
 // https://dashboard.api-football.com/soccer/fixtures response
 
 // TYPES

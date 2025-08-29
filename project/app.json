@@ -44,7 +44,10 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to take profile pictures for your account.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for your profile picture.",
-        "NSMicrophoneUsageDescription": "This app may need microphone access for video features."
+        "NSMicrophoneUsageDescription": "This app may need microphone access for video features.",
+        "NSLocationWhenInUseUsageDescription": "This app needs location access to provide location-based sports content and match information.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs location access to provide location-based sports content and match information.",
+        "NSLocationUsageDescription": "This app needs location access to provide location-based sports content and match information."
       }
     },
     "android": {
@@ -58,8 +61,7 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES"
-      ],
-      "googleServicesFile": "./google-services.json"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png",
@@ -88,15 +90,13 @@
           "color": "#ffffff",
           "androidMode": "default",
           "androidCollapsedTitle": "New Notification",
-          "iosDisplayInForeground": true,
-          "android": {
-            "googleServicesFile": "./google-services.json"
-          }
+          "iosDisplayInForeground": true
         }
       ],
       [
         "@react-native-google-signin/google-signin",
         {
+          "iosClientId": "65605327855-bbjb8tsm97ee40lquj4053218i1kurt2.apps.googleusercontent.com",
           "iosUrlScheme": "com.googleusercontent.apps.65605327855-bbjb8tsm97ee40lquj4053218i1kurt2"
         }
       ]

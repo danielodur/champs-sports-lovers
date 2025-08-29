@@ -60,6 +60,7 @@ import { useMessages } from "@/contexts/MessagesContext";
 import { useInvites } from "@/contexts/InvitesContext";
 import { useTranslation } from "react-i18next";
 import useAuth from "@/hooks/useAuth";
+import { SafeNavigation } from "@/utils/navigationUtils";
 import * as Location from "expo-location";
 import { useFocusEffect } from "@react-navigation/native";
 import {
@@ -96,7 +97,7 @@ const generateProfessionalAvatar = (seed: string) => {
 
   // Use Dicebear adventurer style for realistic professional avatars
   const url = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(
-    seed
+    seed,
   )}&backgroundColor=${backgroundColor}&size=160`;
   console.log("Generated professional Dicebear avatar URL for", seed, ":", url);
   return url;
@@ -377,7 +378,7 @@ export default function ProfileScreen() {
     // ✅ RECOVERY: Handle edge cases where auth state might be corrupted
     if (isLoggedIn && !userInfo) {
       console.warn(
-        "⚠️ Auth state inconsistency detected - user is logged in but no userInfo"
+        "⚠️ Auth state inconsistency detected - user is logged in but no userInfo",
       );
       console.log("🔧 Attempting to re-initialize auth...");
 
@@ -389,16 +390,14 @@ export default function ProfileScreen() {
   }, [isLoggedIn, userInfo, initializeAuth]);
 
   // ✅ ENHANCED: Handle login button press with better error handling
-  const handleLoginPress = () => {
+  const handleLogin = () => {
     try {
       console.log("🔐 Login button pressed - navigating to login screen");
-      router.push("/login-register");
+      SafeNavigation.goToAuth(router, "login-register");
     } catch (error) {
-      console.error("❌ Login navigation error:", error);
-      // Fallback navigation
-      setTimeout(() => {
-        router.replace("/login-register");
-      }, 100);
+      console.error("❌ Error navigating to login screen:", error);
+      // Fallback using safe navigation
+      SafeNavigation.navigate(router, "/login-register", "replace", "/(tabs)");
     }
   };
 
@@ -479,7 +478,7 @@ export default function ProfileScreen() {
                   address.country ||
                   getLocationFromCoordinates(
                     location.coords.latitude,
-                    location.coords.longitude
+                    location.coords.longitude,
                   );
               }
 
@@ -520,13 +519,13 @@ export default function ProfileScreen() {
                     address.country ||
                     getLocationFromCoordinates(
                       location.coords.latitude,
-                      location.coords.longitude
+                      location.coords.longitude,
                     );
                 }
 
                 console.log(
                   "Balanced accuracy location detected:",
-                  detectedLocation
+                  detectedLocation,
                 );
               }
             } catch (balancedAccuracyError) {
@@ -540,11 +539,11 @@ export default function ProfileScreen() {
 
                 detectedLocation = getLocationFromCoordinates(
                   location.coords.latitude,
-                  location.coords.longitude
+                  location.coords.longitude,
                 );
                 console.log(
                   "Low accuracy location detected:",
-                  detectedLocation
+                  detectedLocation,
                 );
               } catch (lowAccuracyError) {
                 console.log("All GPS methods failed, using default location");
@@ -617,7 +616,7 @@ export default function ProfileScreen() {
     for (const district of ugandaDistricts) {
       const distance = Math.sqrt(
         Math.pow(latitude - district.lat, 2) +
-          Math.pow(longitude - district.lng, 2)
+          Math.pow(longitude - district.lng, 2),
       );
 
       if (distance < district.range && distance < minDistance) {
@@ -645,7 +644,8 @@ export default function ProfileScreen() {
 
         for (const city of chineseCities) {
           const distance = Math.sqrt(
-            Math.pow(latitude - city.lat, 2) + Math.pow(longitude - city.lng, 2)
+            Math.pow(latitude - city.lat, 2) +
+              Math.pow(longitude - city.lng, 2),
           );
           if (distance < city.range) {
             return city.name;
@@ -708,7 +708,8 @@ export default function ProfileScreen() {
 
         for (const city of indianCities) {
           const distance = Math.sqrt(
-            Math.pow(latitude - city.lat, 2) + Math.pow(longitude - city.lng, 2)
+            Math.pow(latitude - city.lat, 2) +
+              Math.pow(longitude - city.lng, 2),
           );
           if (distance < city.range) {
             return city.name;
@@ -734,7 +735,8 @@ export default function ProfileScreen() {
 
         for (const city of usCities) {
           const distance = Math.sqrt(
-            Math.pow(latitude - city.lat, 2) + Math.pow(longitude - city.lng, 2)
+            Math.pow(latitude - city.lat, 2) +
+              Math.pow(longitude - city.lng, 2),
           );
           if (distance < city.range) {
             return city.name;
@@ -760,7 +762,7 @@ export default function ProfileScreen() {
 
   // State to store saved profile picture
   const [savedProfilePicture, setSavedProfilePicture] = useState<string | null>(
-    null
+    null,
   );
 
   // Load saved profile data
@@ -796,7 +798,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     React.useCallback(() => {
       loadProfileData();
-    }, [])
+    }, []),
   );
 
   const openSideMenu = () => {
@@ -1292,7 +1294,7 @@ export default function ProfileScreen() {
                     styles.loginButton,
                     { backgroundColor: "rgba(255,255,255,0.2)" },
                   ]}
-                  onPress={handleLoginPress}
+                  onPress={handleLogin}
                   activeOpacity={0.7}
                 >
                   <LogIn size={16} color="#FFFFFF" />

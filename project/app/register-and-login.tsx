@@ -19,6 +19,7 @@ import { ChevronLeft, Trophy, ChevronDown } from "lucide-react-native";
 import { useTheme, useThemeMode } from "@/hooks/useTheme";
 import { useTranslation } from "react-i18next";
 import useAuth from "@/hooks/useAuth";
+import { SafeNavigation } from "@/utils/navigationUtils";
 import {
   formatPhoneNumber,
   formatPhoneNumberWithoutCountryCode,
@@ -53,7 +54,7 @@ export default function RegisterAndLoginScreen() {
   const countryListRef = useRef<FlatList>(null);
   const countdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<"phone" | "whatsapp">(
-    "phone"
+    "phone",
   ); // phone or whatsapp
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -67,7 +68,7 @@ export default function RegisterAndLoginScreen() {
           item.type === "country" &&
           item.country?.country
             .toLowerCase()
-            .includes(searchQuery.toLowerCase())
+            .includes(searchQuery.toLowerCase()),
       )
     : flatListData;
 
@@ -130,7 +131,7 @@ export default function RegisterAndLoginScreen() {
           return true;
         }
         return false;
-      }
+      },
     );
 
     return () => backHandler.remove();
@@ -154,7 +155,7 @@ export default function RegisterAndLoginScreen() {
       // Format phone number for Supabase (international format)
       const formattedPhone = `${countryCode}${phoneNumber.replace(
         /[^0-9]/g,
-        ""
+        "",
       )}`;
 
       if (selectedMethod === "phone") {
@@ -178,7 +179,7 @@ export default function RegisterAndLoginScreen() {
       } else {
         Alert.alert(
           "Error",
-          "SMS provider not configured. For testing, use code 1234 with any phone number."
+          "SMS provider not configured. For testing, use code 1234 with any phone number.",
         );
       }
     } finally {
@@ -199,7 +200,7 @@ export default function RegisterAndLoginScreen() {
       // Format phone number for Supabase (international format)
       const formattedPhone = `${countryCode}${phoneNumber.replace(
         /[^0-9]/g,
-        ""
+        "",
       )}`;
 
       await verifyPhoneOtp(formattedPhone, verificationCode);
@@ -273,7 +274,9 @@ export default function RegisterAndLoginScreen() {
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={() => {
+                SafeNavigation.goBack(router, "/login-register", "replace");
+              }}
               style={styles.backButton}
               activeOpacity={0.7}
             >
@@ -421,7 +424,7 @@ export default function RegisterAndLoginScreen() {
                 countryCode === "+256"
                   ? "7729 080 10"
                   : `${t(
-                      "Enter Phone Number"
+                      "Enter Phone Number",
                     )} (${getMaxPhoneLengthForCurrentCountry()} ${t("digits")})`
               }
               placeholderTextColor={theme.colors.textSecondary}
@@ -479,8 +482,8 @@ export default function RegisterAndLoginScreen() {
                 {isCountdownActive
                   ? `${t("Resend")} (${countdown}s)`
                   : hasInitiatedVerification
-                  ? t("Resend Code")
-                  : t("Send Code")}
+                    ? t("Resend Code")
+                    : t("Send Code")}
               </Text>
             </TouchableOpacity>
           </View>

@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Headset, ChevronDown } from "lucide-react-native";
 import { useTheme } from "@/hooks/useTheme";
+import { SafeNavigation } from "@/utils/navigationUtils";
 import {
   countryCodes,
   getMaxPhoneLength,
@@ -54,7 +55,7 @@ export default function RecoverAccountScreen() {
           item.type === "country" &&
           item.country?.country
             .toLowerCase()
-            .includes(searchQuery.toLowerCase())
+            .includes(searchQuery.toLowerCase()),
       )
     : flatListData;
 
@@ -106,7 +107,7 @@ export default function RecoverAccountScreen() {
     if (!isValidPhone(phoneNumber)) {
       Alert.alert(
         "Error",
-        `Please enter a valid phone number for ${countryCode}`
+        `Please enter a valid phone number for ${countryCode}`,
       );
       return;
     }
@@ -118,7 +119,7 @@ export default function RecoverAccountScreen() {
       setTimer(40);
       Alert.alert(
         "Verification Code Sent",
-        "A verification code has been sent to your phone number."
+        "A verification code has been sent to your phone number.",
       );
     }, 1200);
   };
@@ -127,7 +128,7 @@ export default function RecoverAccountScreen() {
     if (!isValidPhone(phoneNumber)) {
       Alert.alert(
         "Error",
-        `Please enter a valid phone number for ${countryCode}`
+        `Please enter a valid phone number for ${countryCode}`,
       );
       return;
     }
@@ -137,7 +138,7 @@ export default function RecoverAccountScreen() {
       setTimer(40);
       Alert.alert(
         "Verification Code Sent",
-        "A new verification code has been sent to your phone number."
+        "A new verification code has been sent to your phone number.",
       );
     }, 1200);
   };
@@ -171,11 +172,16 @@ export default function RecoverAccountScreen() {
         "If you go back now, your progress will be lost. Do you want to continue?",
         [
           { text: "Cancel", style: "cancel" },
-          { text: "Yes", style: "destructive", onPress: () => router.back() },
-        ]
+          {
+            text: "Yes",
+            style: "destructive",
+            onPress: () =>
+              SafeNavigation.goBack(router, "/login-register", "replace"),
+          },
+        ],
       );
     } else {
-      router.back();
+      SafeNavigation.goBack(router, "/login-register", "replace");
     }
   };
 
@@ -397,8 +403,8 @@ export default function RecoverAccountScreen() {
                   {loading
                     ? "Sending..."
                     : timer > 0
-                    ? `Resend in ${timer}s`
-                    : "Send Code"}
+                      ? `Resend in ${timer}s`
+                      : "Send Code"}
                 </Text>
               </TouchableOpacity>
 
