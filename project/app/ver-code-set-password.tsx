@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, TouchableWi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Eye, EyeOff, Headphones } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { formatPhoneNumber } from '@/utils/phoneFormatter';
+import { useTheme } from '../hooks/useTheme';
+import { formatPhoneNumber } from '../utils/phoneFormatter';
 import { useTranslation } from 'react-i18next';
 
 export default function VerificationCodeSetPasswordScreen() {

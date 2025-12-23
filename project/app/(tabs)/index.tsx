@@ -1,20 +1,44 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, StatusBar } from "react-native";
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * HOME SCREEN (Main App Screen)
+ * ═══════════════════════════════════════════════════════════════════════
+ * 
+ * File: app/(tabs)/index.tsx
+ * Route: / (default/home route)
+ * 
+ * This is the MAIN HOME SCREEN of the app.
+ * 
+ * Features:
+ * - Sports tabs (Football, Basketball, etc.)
+ * - Match filters (All, Live, Finished, Fixtures, Follows)
+ * - Date selector
+ * - Match list display
+ * - Pull-to-refresh
+ * 
+ * Note: This file MUST be named "index.tsx" for Expo Router to use it
+ *       as the default home route. Do not rename.
+ * ═══════════════════════════════════════════════════════════════════════
+ */
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { View, Text, StyleSheet, StatusBar, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { useTheme } from "@/hooks/useTheme";
+import { Settings } from "lucide-react-native"; // ✅ Match Settings icon
+import { useTheme } from "../../hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import { useFavorites } from "@/hooks/useFavorites";
-import SportsTabs from "@/components/SportsTabs";
-import FilterTabs from "@/components/FilterTabs";
-import DateSelector from "@/components/DateSelector";
-import MatchList from "@/components/MatchList";
-import ConsecutiveStatsButton from "@/components/ConsecutiveStatsButton";
+import { useFavorites } from "../../hooks/useFavorites";
+import SportsTabs from "../../components/SportsTabs";
+import FilterTabs from "../../components/FilterTabs";
+import DateSelector from "../../components/DateSelector";
+import MatchList from "../../components/match-list";
+import ConsecutiveStatsButton from "../../components/ConsecutiveStatsButton";
+import { getLocalDateForApi } from "../../utils/timeUtils";
 
-import { fetchMatches, preloadMatchData } from "@/services/matchService";
-import goalDetectionService from "@/services/goalDetectionService";
-import { useMatchSettings } from "@/contexts/MatchSettingsContext";
-import { FCMTokenManager } from "@/components/FCMTokenManager";
+import { fetchMatches, preloadMatchData } from "../../services/matchService";
+import goalDetectionService from "../../services/goalDetectionService";
+import { useMatchSettings } from "../../contexts/MatchSettingsContext";
+import { FCMTokenManager } from "../../components/FCMTokenManager";
 
 // ✅ DATE VALIDATION: Accept valid future dates (including 2025)
 const validateAndCorrectDate = (dateString: string): string => {
@@ -31,24 +55,14 @@ const validateAndCorrectDate = (dateString: string): string => {
   return dateString;
 };
 
-// ✅ SAFE DATE GENERATOR: Always returns a valid current date
+// ✅ SAFE DATE GENERATOR: Always returns a valid current date using centralized utility
 const getSafeCurrentDate = (): string => {
   try {
-    const now = new Date();
-    const dateString = now.toISOString().split("T")[0];
-
-    // Validate the generated date (now accepts future dates)
-    const validatedDate = validateAndCorrectDate(dateString);
-    console.log(
-      `📅 SAFE DATE: Generated ${validatedDate} (original: ${dateString})`
-    );
-
-    return validatedDate;
+    return getLocalDateForApi();
   } catch (error) {
-    console.error("❌ Date generation failed, using fallback:", error);
-    // Ultimate fallback - use actual current date
-    const now = new Date();
-    return now.toISOString().split("T")[0];
+    console.error("❌ Date generation failed:", error);
+    // Ultimate fallback
+    return new Date().toISOString().split("T")[0];
   }
 };
 
@@ -66,48 +80,184 @@ const getSafeCurrentDate = (): string => {
 // }
 
 export default function HomeScreen() {
+  const theme = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const theme = useTheme();
-  const { t } = useTranslation();
-  const { favoritesCount, refreshFavoritesCount } = useFavorites();
-  const { showGoalNotification } = useMatchSettings();
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "live" | "fixture" | "finished" | "follows"
+  >("all");
   const [activeSport, setActiveSport] = useState("football");
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [sortMode, setSortMode] = useState("time");
-  const [displayMode, setDisplayMode] = useState("score");
+  const [sortMode, setSortMode] = useState<"time" | "relevance">("time");
+  const [displayMode, setDisplayMode] = useState<"score" | "odds">("score");
   const [selectedDate, setSelectedDate] = useState(getSafeCurrentDate());
   const [matchCount, setMatchCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentMatches, setCurrentMatches] = useState<any[]>([]);
+  const { favoritesCount, refreshFavoritesCount } = useFavorites();
 
-  // ✅ GLOBAL REFRESH FUNCTION: Allow match-details to trigger refreshes
+  // Debug utility for favorites troubleshooting
+  const debugFavorites = useCallback(async () => {
+    console.log("🐛 === HOME SCREEN DEBUG ===");
+    console.log(`Active filter: ${activeFilter}`);
+    console.log(`Favorites count: ${favoritesCount}`);
+
+    try {
+      const { favoritesService } = await import(
+        "../../services/favoritesService"
+      );
+      await favoritesService.debugFavoritesSync();
+    } catch (error) {
+      console.error("Debug failed:", error);
+    }
+  }, [activeFilter, favoritesCount]);
+
+  // Expose debug and reset functions globally for testing
   useEffect(() => {
+    (global as any).debugFavorites = debugFavorites;
+    
+    (global as any).showDatabaseFavorites = async () => {
+      console.log("🔍 === DATABASE INSPECTION ===");
+      try {
+        const { favoritesService } = await import("../../services/favoritesService");
+        const { supabase } = await import("../../services/supabaseClient");
+        
+        // Get user ID
+        const { data: { session } } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        
+        if (!userId) {
+          console.log("⚠️ No authenticated user");
+          return;
+        }
+        
+        console.log(`👤 User ID: ${userId}`);
+        
+        // Get all favorites from database
+        const { data, error } = await supabase
+          .from("favorite_matches")
+          .select("*")
+          .eq("user_id", userId);
+        
+        if (error) {
+          console.error("❌ Database error:", error);
+          return;
+        }
+        
+        console.log(`📊 Total records in database: ${data?.length || 0}`);
+        
+        if (data && data.length > 0) {
+          console.log("📋 Database records:");
+          data.forEach((record: any, idx: number) => {
+            console.log(`  ${idx + 1}. DB ID: ${record.id}`);
+            console.log(`     Match ID: ${record.match_id} (type: ${typeof record.match_id})`);
+            console.log(`     Match: ${record.home_team} vs ${record.away_team}`);
+            console.log(`     League: ${record.league}`);
+            console.log(`     Sport: ${record.sport}`);
+            console.log(`     Added: ${record.date_added}`);
+            console.log(`     ---`);
+          });
+        } else {
+          console.log("✅ Database is clean - no favorites found");
+        }
+      } catch (error) {
+        console.error("❌ Inspection failed:", error);
+      }
+    };
+    
+    (global as any).forceResetAllFavorites = async () => {
+      console.log("💥 CALLING NUCLEAR RESET FROM GLOBAL...");
+      try {
+        const { favoritesService } = await import("../../services/favoritesService");
+        await favoritesService.forceResetAllFavorites();
+        await refreshFavoritesCount(true);
+        console.log("💥 NUCLEAR RESET COMPLETE - Refreshing UI...");
+        console.log("📱 Please close and reopen the app to see changes");
+      } catch (error) {
+        console.error("❌ Nuclear reset failed:", error);
+      }
+    };
+    
+    return () => {
+      delete (global as any).debugFavorites;
+      delete (global as any).forceResetAllFavorites;
+      delete (global as any).showDatabaseFavorites;
+    };
+  }, [debugFavorites, refreshFavoritesCount]);
+
+  // ✅ OPTIMIZED GLOBAL REFRESH FUNCTION: Prevent excessive refreshes for favorites
+  useEffect(() => {
+    // Enhanced global refresh with better coordination
     (global as any).refreshMatchLists = () => {
       console.log(
-        "🔄 GLOBAL REFRESH: Refreshing all match lists from match-details"
+        "🔄 GLOBAL REFRESH: Refreshing all match lists from other screens",
       );
-      setRefreshKey((prev) => prev + 1);
-      refreshFavoritesCount();
+      // Only refresh if not on follows filter to prevent blinking
+      if (activeFilter !== "follows") {
+        setRefreshKey((prev) => prev + 1);
+      }
+      // Don't call refreshFavoritesCount here to prevent cascading updates
+    };
+
+    // Optimized global favorites sync - reduce excessive refreshes
+    (global as any).onMatchFavoriteChanged = (
+      matchId: string,
+      isFavorite: boolean,
+    ) => {
+      console.log(
+        `🔄 HOME SCREEN: Global favorite sync - Match ${matchId} favorite: ${isFavorite}`,
+      );
+      // Only trigger refresh for non-follows filters to prevent blinking
+      if (activeFilter !== "follows") {
+        setTimeout(() => {
+          setRefreshKey((prev) => prev + 1);
+        }, 200);
+      }
+    };
+
+    // Simplified global count sync - let the hook handle updates
+    (global as any).onFavoritesCountChanged = (newCount: number) => {
+      console.log(`📊 HOME SCREEN: Global count sync - ${newCount} favorites`);
+      // Don't force refresh here - let useFavorites hook handle the updates
     };
 
     return () => {
       delete (global as any).refreshMatchLists;
+      delete (global as any).onMatchFavoriteChanged;
+      delete (global as any).onFavoritesCountChanged;
     };
-  }, [refreshFavoritesCount]);
+  }, [activeFilter]); // Removed refreshFavoritesCount and favoritesCount dependencies
 
   // Handle incoming sport parameter from Top screen
   useEffect(() => {
     if (params.sport && typeof params.sport === "string") {
       console.log(
         "✅ Navigation from Top screen - setting sport:",
-        params.sport
+        params.sport,
       );
       setActiveSport(params.sport);
       router.setParams({ sport: undefined });
     }
   }, [params.sport]);
+
+  // Handle incoming filter parameter (e.g., from Discover Results shortcut)
+  useEffect(() => {
+    if (params.filter && typeof params.filter === "string") {
+      const normalized = params.filter.toLowerCase();
+      const allowedFilters = ["all", "live", "fixture", "finished", "follows"] as const;
+      if (
+        allowedFilters.includes(normalized as typeof allowedFilters[number]) &&
+        normalized !== activeFilter
+      ) {
+        console.log(
+          "✅ Navigation parameter - setting active filter:",
+          normalized,
+        );
+        setActiveFilter(normalized as typeof allowedFilters[number]);
+        router.setParams({ filter: undefined });
+      }
+    }
+  }, [params.filter, activeFilter, router]);
 
   // Goal detection and background refresh service startup
   useEffect(() => {
@@ -124,7 +274,7 @@ export default function HomeScreen() {
 
         // Start background refresh service
         const { backgroundRefreshService } = await import(
-          "@/services/backgroundRefreshService"
+          "../../services/backgroundRefreshService"
         );
         backgroundRefreshService.startBackgroundRefresh();
 
@@ -147,7 +297,7 @@ export default function HomeScreen() {
       const stopServices = async () => {
         try {
           const { backgroundRefreshService } = await import(
-            "@/services/backgroundRefreshService"
+            "../../services/backgroundRefreshService"
           );
           backgroundRefreshService.stopBackgroundRefresh();
         } catch (error) {
@@ -162,42 +312,95 @@ export default function HomeScreen() {
     console.log("🏈 Sport changing from", activeSport, "to", sport);
 
     if (sport === "important") {
-      console.log("⚡ ZERO JUMPING: Navigating to Top screen");
-      router.push("/top");
+      console.log("⚡ ZERO JUMPING: Navigating to Top Football Matches screen");
+      router.push("/(tabs)/top-matches");
       return;
     }
 
+    // ✅ SMOOTH SPORT SWITCHING: Update sport and trigger data refresh
+    console.log(`🔄 Switching to ${sport} - refreshing matches`);
     setActiveSport(sport);
+    
+    // Reset to "all" filter for smooth transition
+    setActiveFilter("all");
+    
+    // Clear current matches to show loading state
+    setCurrentMatches([]);
+    
+    // Trigger refresh to fetch new sport data
+    setRefreshKey((prev) => prev + 1);
   };
 
-  // Force today's date for finished/fixture filters with validation
+  // ✅ CRITICAL FIX: Force TODAY'S date when entering finished/fixture filters
+  // This ensures users always start on "Today" screen, not "Yesterday"
   useEffect(() => {
     if (activeFilter === "finished" || activeFilter === "fixture") {
       const safeToday = getSafeCurrentDate();
       console.log(
-        `🏁 ${activeFilter.toUpperCase()} filter - using safe date: ${safeToday}`
+        `🏁 ${activeFilter.toUpperCase()} filter - FORCING TODAY'S DATE: ${safeToday}`,
       );
+      console.log(`   Previous selectedDate was: ${selectedDate}`);
+      
+      // ✅ ALWAYS set to today when entering finished/fixture screens  
       setSelectedDate(safeToday);
+      console.log(`   ✅ Selected date NOW SET TO TODAY: ${safeToday}`);
+      console.log(`   ✅ USER WILL SEE: "Today" screen`);
     }
-  }, [activeFilter]);
+  }, [activeFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ✅ CORRECTED: Only refresh count when follows tab is activated (NO AUTO-CLEARING)
+  // ✅ OPTIMIZED FOLLOWS TAB: Prevent excessive refreshes
   useEffect(() => {
     if (activeFilter === "follows") {
-      console.log("⭐ FOLLOWS TAB: Refreshing count without clearing data...");
+      console.log(
+        "⭐ FOLLOWS TAB: Activated - loading favorites without excessive refresh...",
+      );
 
-      // ✅ CORRECT BEHAVIOR: Only refresh the count, never clear user data
-      refreshFavoritesCount();
+      // Only trigger refresh key change, let the natural data flow handle count
+      setRefreshKey((prev) => prev + 1);
     }
-  }, [activeFilter, refreshFavoritesCount]);
+  }, [activeFilter]); // Removed refreshFavoritesCount dependency
+
+  // Simplified cross-screen synchronization for favorites
+  useEffect(() => {
+    const syncListenerCleanup = () => {
+      try {
+        const { favoritesService } = require("../../services/favoritesService");
+
+        const cleanup = favoritesService.addSyncListener(
+          (matchId: string, isFavorite: boolean) => {
+            console.log(
+              `🔄 HOME SCREEN SYNC: Match ${matchId} favorite: ${isFavorite}`,
+            );
+
+            // Only refresh if a match was unfavorited from follows tab
+            if (activeFilter === "follows" && !isFavorite) {
+              setTimeout(() => {
+                setRefreshKey((prev) => prev + 1);
+              }, 300); // Longer delay to prevent rapid refreshes
+            }
+          },
+        );
+
+        return cleanup;
+      } catch (error) {
+        console.error("❌ Error setting up sync listener:", error);
+        return () => {};
+      }
+    };
+
+    const cleanup = syncListenerCleanup();
+    return cleanup;
+  }, [activeFilter]); // Removed refreshFavoritesCount dependency
 
   const getSortIndicatorText = () => {
     if (activeFilter === "follows") {
-      return "⭐ Your Favorite Matches";
+      return favoritesCount > 0
+        ? `⭐ Your ${favoritesCount} Favorite Match${favoritesCount === 1 ? "" : "es"}`
+        : "⭐ No Favorite Matches Yet";
     }
 
-    if (sortMode === "league") {
-      return "🏆 Sorted by League";
+    if (sortMode === "relevance") {
+      return "🏆 Sorted by Relevance";
     } else {
       return "⏰ Sorted by Time";
     }
@@ -206,36 +409,50 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      console.log(`🔄 Refreshing ${activeFilter} matches for ${activeSport}`);
+      console.log(
+        `🔄 HOME SCREEN: Refreshing ${activeFilter} matches for ${activeSport}`,
+      );
+
+      // Enhanced refresh with favorites sync
+      if (activeFilter === "follows") {
+        // For follows screen, just log - let natural sync handle the count
+        console.log("📊 Favorites screen refreshed during pull-to-refresh");
+      }
 
       // Force refresh through background service
       const { backgroundRefreshService } = await import(
-        "@/services/backgroundRefreshService"
+        "../../services/backgroundRefreshService"
       );
-      const freshMatches = await backgroundRefreshService.forceRefresh(
-        activeFilter
-      );
+      const freshMatches =
+        await backgroundRefreshService.forceRefresh(activeFilter);
 
       // Update current matches state
       setCurrentMatches(freshMatches);
 
-      // Also trigger the increment of refresh key to update MatchList
+      // Immediate refresh key trigger
       setRefreshKey((prev) => prev + 1);
 
-      console.log(`✅ Refresh completed: ${freshMatches.length} matches`);
+      console.log(
+        `✅ HOME SCREEN: Refresh completed: ${freshMatches.length} matches`,
+      );
     } catch (error) {
-      console.error("Refresh error:", error);
+      console.error("❌ HOME SCREEN: Refresh error:", error);
     } finally {
+      // Immediate refresh completion
       setRefreshing(false);
     }
-  }, [activeSport, activeFilter, selectedDate]);
+  }, [activeSport, activeFilter, selectedDate, refreshFavoritesCount]);
 
   // Determine if DateSelector should be sticky (for Fixture and Finished screens)
   const shouldUseStickyDateSelector =
     activeFilter === "fixture" || activeFilter === "finished";
 
+  // Determine if DateSelector should be shown at all (hide for Follows screen)
+  const shouldShowDateSelector =
+    activeFilter === "fixture" || activeFilter === "finished" || activeFilter === "all";
+
   // Create the date selector as a header component for non-sticky screens
-  const renderDateSelectorHeader = useCallback(
+  const dateHeaderComponent = useCallback(
     () => (
       <DateSelector
         selectedDate={selectedDate}
@@ -243,7 +460,7 @@ export default function HomeScreen() {
         activeFilter={activeFilter}
       />
     ),
-    [selectedDate, activeFilter]
+    [selectedDate, activeFilter],
   );
 
   return (
@@ -263,7 +480,7 @@ export default function HomeScreen() {
           styles.container,
           { backgroundColor: theme.colors.backgroundSecondary },
         ]}
-        edges={["top"]}
+        edges={["top", "left", "right"]}
       >
         {/* Sports Tabs */}
         <View
@@ -273,6 +490,18 @@ export default function HomeScreen() {
           ]}
         >
           <SportsTabs active={activeSport} onSelect={handleSportChange} />
+          
+          {/* Match Settings Button */}
+          <TouchableOpacity
+            style={styles.matchSettingsButton}
+            onPress={() => router.push("/match-settings")}
+            activeOpacity={0.7}
+          >
+            <Settings
+              size={20}
+              color={theme.colors.text}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Filter Tabs */}
@@ -284,10 +513,14 @@ export default function HomeScreen() {
         >
           <FilterTabs
             active={activeFilter}
-            onSelect={setActiveFilter}
+            onSelect={(filter) => setActiveFilter(filter as "all" | "live" | "fixture" | "finished" | "follows")}
             currentSport={activeSport}
-            onSortChange={setSortMode}
-            onDisplayModeChange={setDisplayMode}
+            onSortChange={(mode: string) =>
+              setSortMode(mode as "time" | "relevance")
+            }
+            onDisplayModeChange={(mode: string) =>
+              setDisplayMode(mode as "score" | "odds")
+            }
             favoritesCount={favoritesCount}
             currentSortMode={sortMode}
           />
@@ -306,7 +539,9 @@ export default function HomeScreen() {
             <Text
               style={[styles.matchCountText, { color: theme.colors.primary }]}
             >
-              {matchCount} matches
+              {activeFilter === "follows"
+                ? `${matchCount} match${matchCount === 1 ? "" : "es"} found`
+                : `${matchCount} matches`}
             </Text>
           </View>
         </View>
@@ -330,24 +565,24 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Match List - restored to original layout */}
-        <MatchList
-          key={refreshKey}
-          sport={activeSport}
-          filter={activeFilter}
-          sortMode={sortMode}
-          displayMode={displayMode}
-          selectedDate={selectedDate}
-          onFavoritesChange={refreshFavoritesCount}
-          onMatchCountChange={setMatchCount}
-          hideSortIndicator={true}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          headerComponent={
-            shouldUseStickyDateSelector ? undefined : renderDateSelectorHeader
-          }
-          onMatchesLoaded={setCurrentMatches}
-        />
+        {/* Match List - optimized for scrolling */}
+        <View style={styles.matchListContainer}>
+          <MatchList
+            sport={activeSport}
+            filter={activeFilter}
+            sortMode={sortMode}
+            displayMode={displayMode}
+            selectedDate={selectedDate}
+            onFavoritesChange={() => {}} // Empty function to prevent cascading refreshes
+            onMatchCountChange={setMatchCount}
+            hideSortIndicator={true}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            headerComponent={
+              shouldUseStickyDateSelector ? undefined : (shouldShowDateSelector ? dateHeaderComponent : undefined)
+            }
+          />
+        </View>
 
         {/* Small Red Button for Consecutive Stats - Only on All and Live screens */}
         {(activeFilter === "all" || activeFilter === "live") && (
@@ -364,6 +599,9 @@ const styles = StyleSheet.create({
   },
   sportsSection: {
     height: 60,
+    flexDirection: "row", // ✅ Enable horizontal layout for tabs + button
+    alignItems: "center",
+    paddingRight: 12, // ✅ Padding for settings button
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -372,6 +610,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  matchSettingsButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8, // ✅ Space between tabs and button
   },
   filterSection: {
     shadowColor: "#000",
@@ -410,5 +655,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
     zIndex: 5, // Ensure it stays above the match list
+  },
+  matchListContainer: {
+    flex: 1,
+    backgroundColor: "transparent",
   },
 });

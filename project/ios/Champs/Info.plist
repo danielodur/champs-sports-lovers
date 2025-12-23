@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>champs</string>
-          <string>com.champs.app</string>
+          <string>com.briandodur.champsdev</string>
         </array>
       </dict>
       <dict>
@@ -59,13 +59,27 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>Allow Champs to use your camera to take profile pictures.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app needs location access to provide location-based sports content and match information.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your location</string>
+    <key>NSLocationUsageDescription</key>
+    <string>This app needs location access to provide location-based sports content and match information.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs location access to provide location-based sports content and match information.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>This app may need microphone access for video features.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to save photos</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Allow Champs to access your photo library to select profile pictures.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>fetch</string>
     </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>

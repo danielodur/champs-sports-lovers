@@ -14,10 +14,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, X, Eye, EyeOff } from "lucide-react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { formatPhoneNumber } from "@/utils/phoneFormatter";
+import { useTheme } from "../hooks/useTheme";
+import { formatPhoneNumber } from "../utils/phoneFormatter";
 import { useFocusEffect } from "expo-router";
-import { SafeNavigation } from "@/utils/navigationUtils";
+import { SafeNavigation } from "../utils/navigationUtils";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();

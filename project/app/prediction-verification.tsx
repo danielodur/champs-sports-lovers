@@ -18,7 +18,7 @@ import {
   MessageSquare,
   HelpCircle
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 export default function PredictionVerificationScreen() {
   const router = useRouter();

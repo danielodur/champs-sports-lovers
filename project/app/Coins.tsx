@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Search, ArrowUpDown, Star, BarChart3, DollarSign, Zap, Gift, Trophy, Crown, Target, CircleHelp as HelpCircle, MessageCircle, Banknote } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface CoinPackage {
   id: string;

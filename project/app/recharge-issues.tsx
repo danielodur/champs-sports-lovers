@@ -27,7 +27,7 @@ import {
   DollarSign,
   Banknote,
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 type TransactionType = 'apple' | 'mobile-money' | 'bank-transfer';
 

@@ -1,50 +1,137 @@
-# Node dependencies
-node_modules/
+# CURSOR IGNORE FILE - PROTECTED FILES AND DIRECTORIES
+# ⚠️  AI MUST NEVER ACCESS OR MODIFY FILES/DIRECTORIES LISTED HERE ⚠️
+# Position: Root of project - AI must check this before any file operation
 
-# Expo / React Native
+# ============================================================================
+# CRITICAL SECURITY - ENVIRONMENT FILES (ABSOLUTE PROTECTION)
+# ============================================================================
+.env
+.env.*
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+.env.staging
+*.env
+*.env.local
+env-template.txt
+
+# ============================================================================
+# BUILD AND CONFIGURATION FILES (PROTECTED)
+# ============================================================================
+# Package management
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build configurations (only modify with permission)
+app.json
+eas.json
+babel.config.js
+metro.config.js
+tsconfig.json
+
+# Native build files
+android/
+ios/
+*.gradle
+*.pbxproj
+*.xcscheme
+Podfile.lock
+
+# ============================================================================
+# DATABASE AND MIGRATIONS (PROTECTED)
+# ============================================================================
+supabase/migrations/
+database/migrations/
+*.sql
+*.db
+*.sqlite
+
+# ============================================================================
+# DEPENDENCIES AND CACHE (IGNORE)
+# ============================================================================
+node_modules/
 .expo/
 .expo-shared/
 dist/
 web-build/
-expo-env.d.ts
+.cache/
+.temp/
+tmp/
+temp/
+logs/
+coverage/
+output/
 
-# Native / Mobile
-*.orig.*
-*.jks
+# ============================================================================
+# VERSION CONTROL (PROTECTED)
+# ============================================================================
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# ============================================================================
+# SENSITIVE CREDENTIALS AND KEYS (ABSOLUTE PROTECTION)
+# ============================================================================
+*.pem
+*.key
 *.p8
 *.p12
-*.key
+*.jks
 *.mobileprovision
+google-services.json
+GoogleService-Info.plist
+*.keystore
+*.cert
+*.crt
 
-# Metro
-.metro-health-check*
-
-# Debug logs
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS / OS junk
-.DS_Store
-*.pem
-
-# Environment variables
-.env
-.env.*.local
-.env.local
-
-# TypeScript cache
-*.tsbuildinfo
-
-# VS Code / Cursor / Editor specific
+# ============================================================================
+# EDITOR AND AI CONFIGURATIONS (PROTECTED)
+# ============================================================================
 .vscode/
 .cursor/
 .continue/
-.history/
+.zed/
 .idea/
-output/
-logs/
-coverage/
-tmp/
-temp/
-.cache/
+.history/
+*.code-workspace
+
+# ============================================================================
+# TEMPORARY AND GENERATED FILES (IGNORE)
+# ============================================================================
+*.log
+*.tsbuildinfo
+*.orig.*
+.DS_Store
+*.swp
+*.swo
+*~
+.npm/
+.yarn/
+
+# ============================================================================
+# PROJECT-SPECIFIC PROTECTED FILES
+# ============================================================================
+# Deployment scripts (modify with caution)
+deploy-*.sh
+*.sh
+
+# Test data and temporary files
+test-data-screen/
+temp_icons/
+temp-lang-list/
+
+# Documentation that shouldn't be modified without permission
+*.md
+!README.md
+
+# ============================================================================
+# REMINDER
+# ============================================================================
+# Files listed here are protected from AI modification
+# Always ask for user permission before accessing or modifying these files
+# Environment files (.env*) are ABSOLUTELY PROTECTED - never touch them
+

@@ -1,4 +1,4 @@
-import { Match } from '@/types/match';
+import { Match } from '../types/match';
 
 interface MatchScore {
   matchId: string;

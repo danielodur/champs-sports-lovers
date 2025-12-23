@@ -10,7 +10,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { RotateCcw } from "lucide-react-native";
-import { Match } from "@/types/match";
+import { Match } from "../types/match";
 
 interface AnimatedFlatListProps
   extends Omit<FlatListProps<Match>, "data" | "renderItem"> {

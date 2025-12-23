@@ -1,6 +1,6 @@
 // Utility functions for user data with Supabase integration
-import { profileService } from '@/services/profileService';
-import { UserProfile } from '@/services/authService';
+import { profileService } from '../services/profileService';
+import { UserProfile } from '../services/authService';
 
 // Legacy global storage (will be migrated)
 declare global {

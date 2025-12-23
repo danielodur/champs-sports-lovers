@@ -8,7 +8,7 @@ import {
   Pressable,
   Animated,
 } from "react-native";
-import { useThemeMode } from "@/hooks/useTheme";
+import { useThemeMode } from "../hooks/useTheme";
 
 interface ThemeSelectorProps {
   visible: boolean;

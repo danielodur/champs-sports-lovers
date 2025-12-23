@@ -1,5 +1,5 @@
 
-import type { Match } from '@/types/match';
+import type { Match } from '../types/match';
 
 export interface ConsecutiveTeam {
   id: string;

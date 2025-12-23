@@ -1,0 +1,6 @@
+module Pods_Champs {
+  umbrella header "Pods-Champs-umbrella.h"
+
+  export *
+  module * { export * }
+}

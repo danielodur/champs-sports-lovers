@@ -30,8 +30,8 @@ import {
   Trophy,
   Headphones
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { formatPhoneNumber, formatPhoneNumberWithoutCountryCode, validateUgandanPhoneNumber } from '@/utils/phoneFormatter';
+import { useTheme } from '../hooks/useTheme';
+import { formatPhoneNumber, formatPhoneNumberWithoutCountryCode, validateUgandanPhoneNumber } from '../utils/phoneFormatter';
 
 interface NotificationSettings {
   // Order Management

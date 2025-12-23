@@ -20,22 +20,30 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Trophy, Eye, EyeOff, Chrome } from "lucide-react-native";
-import { useTheme, useThemeMode } from "@/hooks/useTheme";
+import { useTheme, useThemeMode } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import useAuth from "@/hooks/useAuth";
+import useAuth from "../hooks/useAuth";
 
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import supabase from "@/services/supabaseClient";
-import OAuthWebView from "@/components/OAuthWebView";
-import { SafeNavigation } from "@/utils/navigationUtils";
+import supabase from "../services/supabaseClient";
+import OAuthWebView from "../components/OAuthWebView";
+import { SafeNavigation } from "../utils/navigationUtils";
+import {
+  sanitizeErrorMessage,
+  AUTH_ERRORS,
+  VALIDATION_ERRORS,
+} from "../utils/errorUtils";
 
 GoogleSignin.configure({
-  scopes: ["https://www.googleapis.com/auth/drive.readonly"],
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID,
+  scopes: ["openid", "profile", "email"],
+  webClientId:
+    process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
+    "65605327855-bbjb8tsm97ee40lquj4053218i1kurt2.apps.googleusercontent.com",
   iosClientId:
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ||
     "65605327855-bbjb8tsm97ee40lquj4053218i1kurt2.apps.googleusercontent.com",
   offlineAccess: false,
+  forceCodeForRefreshToken: true,
 
   // If you need offline access, uncomment the following and add your server web client ID:
   // offlineAccess: true,
@@ -47,6 +55,40 @@ GoogleSignin.configure({
   // 3. Create a new "Web application" client ID
   // 4. Add it to your .env file as EXPO_PUBLIC_GOOGLE_SERVER_CLIENT_ID
 });
+
+// Email validation function
+function validateEmail(email: string): string | null {
+  if (!email) {
+    return VALIDATION_ERRORS.EMAIL_REQUIRED;
+  }
+
+  if (!email.includes("@")) {
+    return VALIDATION_ERRORS.EMAIL_INVALID;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return VALIDATION_ERRORS.EMAIL_INVALID;
+  }
+
+  return null;
+}
+
+// Password validation function
+function validatePassword(
+  password: string,
+  isRegistering: boolean = false,
+): string | null {
+  if (!password) {
+    return VALIDATION_ERRORS.PASSWORD_REQUIRED;
+  }
+
+  if (isRegistering && password.length < 6) {
+    return VALIDATION_ERRORS.PASSWORD_TOO_SHORT;
+  }
+
+  return null;
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -118,7 +160,15 @@ export default function LoginScreen() {
     if (isLoggedIn && !authLoading && !navigationAttempted.current) {
       console.log("✅ User is logged in, navigating to main app...");
       navigationAttempted.current = true;
-      router.replace("/(tabs)/profile");
+
+      // Show success message briefly before navigation
+      setSuccessMessage("Welcome! Redirecting to your profile...");
+      setError("");
+
+      // Small delay to show success message
+      setTimeout(() => {
+        router.replace("/(tabs)/profile");
+      }, 500);
     }
   }, [isLoggedIn, authLoading, router]);
 
@@ -129,10 +179,10 @@ export default function LoginScreen() {
     };
   }, []);
 
-  // Handle Google Sign-In with Supabase OAuth
+  // Handle Google Sign-In with enhanced error handling and debugging
   const handleGoogleSignIn = async () => {
     if (!agreedToTerms) {
-      setError("Please agree to the terms and conditions");
+      setError(AUTH_ERRORS.TERMS_NOT_AGREED);
       return;
     }
 
@@ -141,58 +191,117 @@ export default function LoginScreen() {
     setIsSubmittingGoogle(true);
 
     try {
-      console.log("🔐 Starting Google Sign-In process...");
+      console.log("🔐 Starting enhanced Google Sign-In process...");
 
-      // Check if Google Play Services are available
-      await GoogleSignin.hasPlayServices();
+      // Check if Google Play Services are available (Android only)
+      if (Platform.OS === "android") {
+        try {
+          await GoogleSignin.hasPlayServices({
+            showPlayServicesUpdateDialog: true,
+          });
+          console.log("✅ Google Play Services check passed");
+        } catch (playServicesError) {
+          console.log("❌ Google Play Services error");
+          throw new Error(
+            "Google Play Services is required. Please update Google Play Services and try again.",
+          );
+        }
+      }
 
-      // Sign in with Google
+      // Attempt Google Sign-In
       const userInfo = await GoogleSignin.signIn();
-      console.log("✅ Google Sign-In successful, user info received");
+      console.log("✅ Google Sign-In successful, user info received:", {
+        hasIdToken: !!userInfo?.data?.idToken,
+        email: userInfo?.data?.user?.email,
+        name: userInfo?.data?.user?.name,
+        idTokenLength: userInfo?.data?.idToken?.length || 0,
+      });
 
-      if (userInfo?.data?.idToken) {
-        console.log("🔐 ID token received, signing in with Supabase...");
+      // Validate we have the required tokens
+      if (!userInfo?.data?.idToken) {
+        console.log("❌ No ID token received from Google");
+        console.log("Full userInfo structure received");
 
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: userInfo.data.idToken,
+        // Try to get current user as fallback
+        const currentUser = await GoogleSignin.getCurrentUser();
+        if (currentUser?.idToken) {
+          console.log("✅ Found ID token in current user");
+          if (userInfo.data) {
+            userInfo.data = {
+              ...userInfo.data,
+              idToken: currentUser.idToken || "",
+            };
+          }
+        } else {
+          throw new Error("Google sign-in failed. Please try again.");
+        }
+      }
+
+      // Authenticate with Supabase
+      console.log("🔐 Authenticating with Supabase using ID token...");
+
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: userInfo.data?.idToken || "",
+      });
+
+      if (error) {
+        console.log("❌ Supabase authentication failed");
+
+        // Use professional error sanitizer for Supabase errors
+        const friendlyMessage = sanitizeErrorMessage(error);
+        throw new Error(friendlyMessage);
+      }
+
+      if (data?.user) {
+        console.log("✅ Supabase authentication successful:", {
+          email: data.user.email,
+          id: data.user.id,
+          provider: data.user.app_metadata?.provider,
         });
 
-        if (error) {
-          console.error("❌ Supabase sign-in error:", error);
-          throw new Error(
-            error.message || "Failed to authenticate with Supabase",
-          );
-        }
+        // Set success message
+        setSuccessMessage(`Welcome ${data.user.email}! Redirecting...`);
 
-        if (data?.user) {
-          console.log(
-            "✅ Supabase authentication successful:",
-            data.user.email,
-          );
-          // The auth state change listener will handle navigation
-        } else {
-          throw new Error("No user data received from Supabase");
-        }
+        // The auth state change listener will handle navigation
       } else {
-        console.error("❌ No ID token received from Google");
-        throw new Error("No ID token received from Google Sign-In");
+        throw new Error("Authentication failed. Please try again.");
       }
     } catch (error: any) {
-      console.error("❌ Google Sign-In error:", error);
+      console.log("❌ Google Sign-In failed");
 
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        // user cancelled the login flow
-        setError("Google Sign-In cancelled");
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        // operation (e.g. sign in) is in progress already
-        setError("Google Sign-In in progress");
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        // play services not available or outdated
-        setError("Google Play Services not available");
-      } else {
-        // some other error happened
-        setError(error.message || "Google Sign-In failed. Please try again.");
+      let errorMessage = "Google sign-in failed. Please try again.";
+
+      // Handle specific error codes with professional messages
+      switch (error.code) {
+        case statusCodes.SIGN_IN_CANCELLED:
+          errorMessage = "Google sign-in was cancelled. Please try again.";
+          break;
+        case statusCodes.IN_PROGRESS:
+          errorMessage =
+            "Google sign-in is already in progress. Please wait a moment.";
+          break;
+        case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+          errorMessage =
+            "Google Play Services is required. Please update Google Play Services and try again.";
+          break;
+        case statusCodes.SIGN_IN_REQUIRED:
+          errorMessage = "Please sign in with Google to continue.";
+          break;
+        default:
+          // Use our professional error sanitizer
+          errorMessage = sanitizeErrorMessage(error);
+      }
+
+      setError(errorMessage);
+
+      // Clean up on error
+      try {
+        await GoogleSignin.signOut();
+        await supabase.auth.signOut();
+        console.log("🧹 Cleaned up authentication state after error");
+      } catch (cleanupError) {
+        console.warn("⚠️ Could not clean up after error:", cleanupError);
       }
     } finally {
       setIsSubmittingGoogle(false);
@@ -202,12 +311,21 @@ export default function LoginScreen() {
   // Handle email/password authentication
   const handleEmailAuth = async () => {
     if (!agreedToTerms) {
-      setError("Please agree to the terms and conditions");
+      setError(AUTH_ERRORS.TERMS_NOT_AGREED);
       return;
     }
 
-    if (!email || !password) {
-      setError("Please enter both email and password");
+    // Validate email format
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+
+    // Validate password
+    const passwordError = validatePassword(password, !isLogin);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -219,15 +337,19 @@ export default function LoginScreen() {
     }
 
     if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+      setError("Password must be at least 6 characters long");
       return;
     }
 
     setIsSubmitting(true);
     setError("");
+    setSuccessMessage(""); // Clear previous success messages
 
     try {
-      console.log(`${isLogin ? "Login" : "Register"} with email:`, email);
+      console.log(
+        `🔐 ${isLogin ? "Login" : "Registration"} attempt for:`,
+        email,
+      );
 
       let result;
       if (isLogin) {
@@ -239,31 +361,51 @@ export default function LoginScreen() {
       }
 
       if (result.error) {
-        console.error("Auth error:", result.error);
-        setError(
-          result.error.message || `Failed to ${isLogin ? "login" : "register"}`,
-        );
+        // Log error for debugging without exposing raw error object
+        console.log("Authentication failed:", result.error.message);
+        // Use the already sanitized error message from authService
+        const errorMessage =
+          result.error.message || "An error occurred. Please try again.";
+
+        // Add context for better user guidance
+        if (errorMessage.includes("Invalid email or password") && !isLogin) {
+          setError(
+            "Registration failed. This email may already be registered. Try signing in instead.",
+          );
+        } else {
+          setError(errorMessage);
+        }
       } else {
         console.log(`✅ ${isLogin ? "Login" : "Registration"} successful`);
 
         if (isLogin) {
-          // Login successful - navigation will be handled by auth state change
+          // Login successful - show immediate feedback and let auth state handle navigation
+          setError("");
+          setSuccessMessage("Welcome back! Signing you in...");
+
+          // Additional check: if auth state doesn't change within 3 seconds, force navigation
+          setTimeout(() => {
+            if (!navigationAttempted.current) {
+              console.log("🔄 Auth state change delayed, forcing navigation");
+              navigationAttempted.current = true;
+              router.replace("/(tabs)/profile");
+            }
+          }, 3000);
         } else {
           // Sign up successful - switch to login mode and show success message
           setIsLogin(true);
           setError(""); // Clear any previous errors
           setSuccessMessage(
-            "Registration successful! Please check your email and verify your account, then sign in.",
+            "Registration successful! Please check your email to verify your account, then sign in below.",
           );
-          Alert.alert(
-            "Registration Successful!",
-            "Please check your email and click the verification link. Then you can sign in with your email and password.",
-            [{ text: "OK" }],
-          );
+
+          // Clear form for fresh login
+          setPassword("");
         }
       }
-    } catch (error) {
-      console.error("Auth error:", error);
+    } catch (error: any) {
+      console.log("Unexpected auth error occurred");
+      // Fallback error message for unexpected errors
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -295,8 +437,9 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        console.error("❌ Facebook OAuth error:", error);
-        setError("Facebook Sign-In failed. Please try again.");
+        console.log("❌ Facebook OAuth failed");
+        const friendlyErrorMessage = sanitizeErrorMessage(error);
+        setError(friendlyErrorMessage);
         return;
       }
 
@@ -305,12 +448,13 @@ export default function LoginScreen() {
         setOauthUrl(data.url);
         setShowOAuthWebView(true);
       } else {
-        console.error("❌ No OAuth URL received from Facebook");
-        setError("Facebook Sign-In failed. No OAuth URL received.");
+        console.log("❌ No OAuth URL received from Facebook");
+        setError(AUTH_ERRORS.GENERIC_ERROR);
       }
-    } catch (error) {
-      console.error("❌ Facebook Sign-In error:", error);
-      setError("Facebook Sign-In failed. Please try again.");
+    } catch (error: any) {
+      console.log("Facebook Sign-In failed");
+      const friendlyErrorMessage = sanitizeErrorMessage(error);
+      setError(friendlyErrorMessage);
     } finally {
       setIsSubmittingFacebook(false);
     }
@@ -366,7 +510,7 @@ export default function LoginScreen() {
         await Linking.openURL("http://localhost:3000");
       }
     } catch (error) {
-      console.error("❌ Error opening password reset website:", error);
+      console.log("❌ Error opening password reset website");
       Alert.alert(
         "Password Reset",
         "Unable to open password reset website. Please make sure the website is running or contact support.",
@@ -661,15 +805,14 @@ export default function LoginScreen() {
                 backgroundColor: "#FFFFFF",
                 borderWidth: 1,
                 borderColor: "#DADCE0",
-                opacity: isSubmitting ? 0.6 : 1,
+                opacity: isSubmitting || isSubmittingGoogle ? 0.6 : 1,
               },
             ]}
             onPress={handleGoogleSignIn}
-            activeOpacity={0.7}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isSubmittingGoogle}
           >
             {isSubmittingGoogle ? (
-              <ActivityIndicator color="#5F6368" size="small" />
+              <ActivityIndicator size="small" color="#4285F4" />
             ) : (
               <GoogleSigninButton
                 size={GoogleSigninButton.Size.Icon}
@@ -716,33 +859,16 @@ export default function LoginScreen() {
           console.log("✅ OAuth WebView success:", url);
           setShowOAuthWebView(false);
           setOauthUrl("");
-
-          // Facebook-style: Wait for auth state to be fully synchronized
-          // The auth state change listener will handle navigation
-          // No need to manually navigate here to prevent race conditions
           console.log("🔄 OAuth completed, waiting for auth state change...");
         }}
         onError={(error) => {
-          console.error("❌ OAuth WebView error:", error);
+          console.log("❌ OAuth WebView error occurred");
           setShowOAuthWebView(false);
           setOauthUrl("");
 
-          // Provide user-friendly error messages
-          if (error.includes("email") || error.includes("Email")) {
-            setError(
-              "Social login failed: Please ensure your account has a verified email address. You can also try logging in with Google or Facebook instead.",
-            );
-          } else if (error.includes("server_error")) {
-            setError(
-              "Social login failed: Server error. Please try again later or use a different login method.",
-            );
-          } else if (error.includes("unexpected_failure")) {
-            setError(
-              "Social login failed: Please try again or use Google/Facebook login instead.",
-            );
-          } else {
-            setError(`Social login failed: ${error}`);
-          }
+          // Use professional error sanitizer for all OAuth errors
+          const friendlyErrorMessage = sanitizeErrorMessage(error);
+          setError(friendlyErrorMessage);
         }}
       />
     </KeyboardAvoidingView>
@@ -805,28 +931,46 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   errorContainer: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "rgba(239, 83, 80, 0.3)",
+    borderWidth: 1.5,
+    borderColor: "rgba(239, 83, 80, 0.4)",
+    shadowColor: "#EF5350",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   errorText: {
-    fontSize: 14,
-    fontFamily: "Inter-Regular",
+    fontSize: 15,
+    fontFamily: "Inter-Medium",
     textAlign: "center",
+    lineHeight: 22,
   },
   successContainer: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "rgba(76, 175, 80, 0.3)",
+    borderWidth: 1.5,
+    borderColor: "rgba(76, 175, 80, 0.4)",
+    shadowColor: "#4CAF50",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   successText: {
-    fontSize: 14,
-    fontFamily: "Inter-Regular",
+    fontSize: 15,
+    fontFamily: "Inter-Medium",
     textAlign: "center",
+    lineHeight: 22,
   },
   input: {
     height: 48,

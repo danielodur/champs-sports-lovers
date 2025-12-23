@@ -28,12 +28,12 @@ import {
   Star,
   Play,
 } from "lucide-react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { fetchMatches } from "@/services/matchService";
-import { useFavorites } from "@/hooks/useFavorites";
-import type { Match } from "@/types/match";
-import teamLogoService from "@/services/teamLogoService";
-import { leagueNormalizationService } from "@/services/leagueNormalizationService"; // ✅ CRITICAL: Add league normalization
+import { useTheme } from "../hooks/useTheme";
+import { fetchMatches } from "../services/matchService";
+import { useFavorites } from "../hooks/useFavorites";
+import type { Match } from "../types/match";
+import leagueLogoService from "../services/leagueLogoService";
+import { leagueNormalizationService } from "../services/leagueNormalizationService"; // ✅ CRITICAL: Add league normalization
 
 interface MatchResult {
   id: string;
@@ -61,11 +61,12 @@ interface MatchResult {
 export default function ResultsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { addFavorite, removeFavorite, isFavorite, refreshFavoritesCount } =
+    useFavorites();
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toISOString().split("T")[0],
   );
   const [expandedResult, setExpandedResult] = useState<string | null>(null);
 
@@ -88,7 +89,7 @@ export default function ResultsScreen() {
     const dates: { label: string; value: string; date: Date }[] = [];
     const today = new Date();
 
-    // Add "Today" (今天)
+    // Add "Today"
     dates.push({
       label: "Today",
       value: today.toISOString().split("T")[0],
@@ -137,7 +138,7 @@ export default function ResultsScreen() {
             targetDate === new Date().toISOString().split("T")[0]
               ? "TODAY"
               : "SELECTED DATE"
-          })`
+          })`,
         );
 
         // ✅ ENHANCED: For All matches, don't filter by specific date to get comprehensive data
@@ -145,7 +146,7 @@ export default function ResultsScreen() {
         const allMatches = await fetchMatches("football", "all");
 
         console.log(
-          `🌍 RESULTS: Loaded ${allMatches.length} matches total for ${targetDate}`
+          `🌍 RESULTS: Loaded ${allMatches.length} matches total for ${targetDate}`,
         );
 
         // ✅ DEBUG: Show match type breakdown in All matches screen
@@ -159,17 +160,17 @@ export default function ResultsScreen() {
         // ✅ DEBUG: Show sample matches from each type
         const liveMatches = allMatches.filter((m) => m.status === "live");
         const upcomingMatches = allMatches.filter(
-          (m) => m.status === "upcoming"
+          (m) => m.status === "upcoming",
         );
         const finishedMatches = allMatches.filter(
-          (m) => m.status === "finished"
+          (m) => m.status === "finished",
         );
 
         console.log(
           `🔴 LIVE in ALL SCREEN (${liveMatches.length}):`,
           liveMatches
             .slice(0, 3)
-            .map((m) => `${m.home.name} vs ${m.away.name} - ${m.statusText}`)
+            .map((m) => `${m.home.name} vs ${m.away.name} - ${m.statusText}`),
         );
         console.log(
           `📅 UPCOMING in ALL SCREEN (${upcomingMatches.length}):`,
@@ -178,21 +179,19 @@ export default function ResultsScreen() {
             .map(
               (m) =>
                 `${m.home.name} vs ${m.away.name} - ${new Date(
-                  m.startTime
-                ).toLocaleTimeString()}`
-            )
+                  m.startTime,
+                ).toLocaleTimeString()}`,
+            ),
         );
         console.log(
           `🏁 FINISHED in ALL SCREEN (${finishedMatches.length}):`,
           finishedMatches
             .slice(0, 3)
-            .map((m) => `${m.home.name} vs ${m.away.name} - ${m.score}`)
+            .map((m) => `${m.home.name} vs ${m.away.name} - ${m.score}`),
         );
 
         // Enhance with team logos - sorting is already handled by fetchMatches
-        const enhancedMatches = allMatches.map((match) =>
-          teamLogoService.enhanceMatchWithLogos(match)
-        );
+        const enhancedMatches = allMatches;
 
         setMatches(enhancedMatches);
       } catch (err) {
@@ -204,7 +203,7 @@ export default function ResultsScreen() {
         setRefreshing(false);
       }
     },
-    [selectedDate]
+    [selectedDate],
   );
 
   // ✅ ENHANCED: Load matches when component mounts or date changes
@@ -225,7 +224,7 @@ export default function ResultsScreen() {
       // In future, can add sport filtering here
       loadAllMatches();
     },
-    [loadAllMatches]
+    [loadAllMatches],
   );
 
   const matchResults: MatchResult[] = [
@@ -303,20 +302,123 @@ export default function ResultsScreen() {
 
   const handleToggleFavorite = async (match: Match) => {
     try {
-      if (match.isFavorite) {
-        await removeFavorite(match.id);
-      } else {
-        await addFavorite(match);
-      }
+      const matchId = match.id;
+      const originalStatus = match.isFavorite;
+      const newStatus = !originalStatus;
 
-      // Update local state
+      // Enhanced debouncing with global tracking
+      const now = Date.now();
+      const debounceKey = `results_toggle_${matchId}`;
+      const lastToggleTime = (global as any)[debounceKey] || 0;
+
+      if (now - lastToggleTime < 500) {
+        console.log(
+          "⚠️ RESULTS SCREEN: Debouncing rapid favorite toggle for match:",
+          matchId,
+        );
+        return;
+      }
+      (global as any)[debounceKey] = now;
+
+      console.log(
+        `⭐ RESULTS SCREEN: Toggling favorite for ${match.home.name} vs ${match.away.name} (${originalStatus ? "unfollowing" : "following"})`,
+      );
+
+      // Immediate UI update with loading state
       setMatches((prevMatches) =>
         prevMatches.map((m) =>
-          m.id === match.id ? { ...m, isFavorite: !m.isFavorite } : m
-        )
+          m.id === matchId
+            ? { ...m, isFavorite: newStatus, isToggling: true }
+            : m,
+        ),
       );
+
+      // Perform enhanced backend operation
+      let success = false;
+      let operation = "";
+
+      if (originalStatus) {
+        operation = "UNFOLLOW";
+        success = await removeFavorite(matchId);
+      } else {
+        operation = "FOLLOW";
+        // Create enhanced standardized match object
+        const standardizedMatch = {
+          id: matchId,
+          sport: match.sport || "football",
+          league: match.league || "Unknown League",
+          status: match.status || "finished",
+          statusText: match.statusText || "",
+          startTime: match.startTime || new Date().toISOString(),
+          home: {
+            name: match.home.name,
+          },
+          away: {
+            name: match.away.name,
+          },
+          score: match.score || "0-0",
+          halfTimeScore: match.halfTimeScore || "0-0",
+          viewers: match.viewers || "1",
+          hasVideo: match.hasVideo || false,
+          isFavorite: true,
+        };
+        success = await addFavorite(standardizedMatch);
+      }
+
+      // Remove loading state
+      setMatches((prevMatches) =>
+        prevMatches.map((m) =>
+          m.id === matchId ? { ...m, isToggling: false } : m,
+        ),
+      );
+
+      if (success) {
+        console.log(
+          `✅ RESULTS SCREEN: ${operation} successful for match ${matchId}`,
+        );
+
+        // Enhanced cross-screen sync
+        setTimeout(() => {
+          if (typeof (global as any).refreshMatchLists === "function") {
+            (global as any).refreshMatchLists();
+          }
+        }, 100);
+
+        await refreshFavoritesCount();
+      } else {
+        console.error(
+          `❌ RESULTS SCREEN: ${operation} failed for match ${matchId} - reverting UI`,
+        );
+
+        // Enhanced revert on failure
+        setMatches((prevMatches) =>
+          prevMatches.map((m) =>
+            m.id === matchId
+              ? {
+                  ...m,
+                  isFavorite: originalStatus,
+                  isToggling: false,
+                }
+              : m,
+          ),
+        );
+      }
     } catch (error) {
-      console.error("❌ Error toggling favorite:", error);
+      console.error("❌ RESULTS SCREEN: Error toggling favorite:", error);
+
+      // Enhanced error handling with UI revert
+      setMatches((prevMatches) =>
+        prevMatches.map((m) =>
+          m.id === match.id
+            ? { ...m, isFavorite: !m.isFavorite, isToggling: false }
+            : m,
+        ),
+      );
+    } finally {
+      // Cleanup debounce timer
+      setTimeout(() => {
+        delete (global as any)[`results_toggle_${match.id}`];
+      }, 1000);
     }
   };
 
@@ -335,7 +437,7 @@ export default function ResultsScreen() {
           match.away.name
         } - Corners: ${match.home.corners || 0}-${
           match.away.corners || 0
-        }, HT: ${match.halfTimeScore || "--"}`
+        }, HT: ${match.halfTimeScore || "--"}`,
       );
 
       router.push({
@@ -350,12 +452,12 @@ export default function ResultsScreen() {
             const normalizedLeague =
               leagueNormalizationService.normalizeLeagueName(
                 match.league,
-                teamNames
+                teamNames,
               );
             console.log(
               `🏆 RESULTS NAV: Passing "${match.league}" → "${
                 normalizedLeague || match.league
-              }" to match-details`
+              }" to match-details`,
             );
             return normalizedLeague || match.league;
           })(),
@@ -367,6 +469,10 @@ export default function ResultsScreen() {
           halfTimeScore: match.halfTimeScore || "--", // ✅ CRITICAL: Pass real half-time score
           homeCorners: match.home.corners || 0, // ✅ CRITICAL: Pass real corner data
           awayCorners: match.away.corners || 0, // ✅ CRITICAL: Pass real corner data
+          homeLogo: match.home.logo || "", // ✅ CRITICAL: Pass team logos
+          awayLogo: match.away.logo || "", // ✅ CRITICAL: Pass team logos
+          homeRank: match.home.rank?.toString(), // ✅ CRITICAL: Pass team rankings
+          awayRank: match.away.rank?.toString(), // ✅ CRITICAL: Pass team rankings
         },
       });
     } else {
@@ -537,7 +643,7 @@ export default function ResultsScreen() {
     console.log(
       `🔍 RESULTS: Formatting "${cleanName}" with ${
         words.length
-      } words: [${words.join(", ")}]`
+      } words: [${words.join(", ")}]`,
     );
 
     // SINGLE WORD: Check if it's too long and needs breaking
@@ -674,12 +780,12 @@ export default function ResultsScreen() {
               const normalizedLeague =
                 leagueNormalizationService.normalizeLeagueName(
                   match.league,
-                  teamNames
+                  teamNames,
                 );
               console.log(
                 `🏆 RESULTS SCREEN: "${match.league}" → "${
                   normalizedLeague || match.league
-                }"`
+                }"`,
               );
               return normalizedLeague || match.league;
             })()}
@@ -711,7 +817,18 @@ export default function ResultsScreen() {
 
         <TouchableOpacity
           onPress={() => handleToggleFavorite(match)}
-          style={styles.favoriteButton}
+          style={[
+            styles.favoriteButton,
+            {
+              opacity: (match as any).isToggling ? 0.6 : 1,
+              backgroundColor: match.isFavorite
+                ? "rgba(255, 68, 68, 0.1)"
+                : "transparent",
+              borderRadius: 12,
+              padding: 4,
+            },
+          ]}
+          disabled={(match as any).isToggling}
           activeOpacity={0.7}
         >
           <Star
@@ -724,17 +841,7 @@ export default function ResultsScreen() {
 
       <View style={styles.matchResult}>
         <View style={styles.teamContainer}>
-          <Image
-            source={{
-              uri:
-                match.home.logo ||
-                teamLogoService.getOfficialTeamLogo(
-                  match.home.name,
-                  match.league
-                ),
-            }}
-            style={styles.teamLogo}
-          />
+          {/* Team logos removed as per requirements */}
           <Text
             style={[styles.teamName, { color: theme.colors.text }]}
             numberOfLines={2}
@@ -752,8 +859,8 @@ export default function ResultsScreen() {
                   match.status === "live"
                     ? "#FF4444"
                     : match.status === "upcoming"
-                    ? theme.colors.primary
-                    : theme.colors.text,
+                      ? theme.colors.primary
+                      : theme.colors.text,
               },
             ]}
           >
@@ -767,8 +874,8 @@ export default function ResultsScreen() {
                   match.status === "live"
                     ? "#FF4444"
                     : match.status === "upcoming"
-                    ? theme.colors.primary
-                    : theme.colors.textSecondary,
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary,
               },
             ]}
           >
@@ -808,17 +915,7 @@ export default function ResultsScreen() {
         </View>
 
         <View style={styles.teamContainer}>
-          <Image
-            source={{
-              uri:
-                match.away.logo ||
-                teamLogoService.getOfficialTeamLogo(
-                  match.away.name,
-                  match.league
-                ),
-            }}
-            style={styles.teamLogo}
-          />
+          {/* Team logos removed as per requirements */}
           <Text
             style={[styles.teamName, { color: theme.colors.text }]}
             numberOfLines={2}
@@ -912,17 +1009,16 @@ export default function ResultsScreen() {
               startTime: result.date,
               home: {
                 name: result.homeTeam.name,
-                logo: result.homeTeam.logo,
               },
               away: {
                 name: result.awayTeam.name,
-                logo: result.awayTeam.logo,
               },
               score: `${result.homeTeam.score}-${result.awayTeam.score}`,
               halfTimeScore: "0-0",
               viewers: "1", // Show 1 viewer (current user) for all matches
               hasVideo: false,
               isFavorite: result.isFavorite,
+              addedTime: "",
             };
             handleToggleFavorite(matchData);
           }}
@@ -939,10 +1035,7 @@ export default function ResultsScreen() {
 
       <View style={styles.matchResult}>
         <View style={styles.teamContainer}>
-          <Image
-            source={{ uri: result.homeTeam.logo }}
-            style={styles.teamLogo}
-          />
+          {/* Team logo removed as per requirements */}
           <Text
             style={[styles.teamName, { color: theme.colors.text }]}
             numberOfLines={2}
@@ -961,10 +1054,7 @@ export default function ResultsScreen() {
         </View>
 
         <View style={styles.teamContainer}>
-          <Image
-            source={{ uri: result.awayTeam.logo }}
-            style={styles.teamLogo}
-          />
+          {/* Team logo removed as per requirements */}
           <Text
             style={[styles.teamName, { color: theme.colors.text }]}
             numberOfLines={2}
@@ -1272,10 +1362,10 @@ export default function ResultsScreen() {
             {(() => {
               const liveMatches = matches.filter((m) => m.status === "live");
               const upcomingMatches = matches.filter(
-                (m) => m.status === "upcoming"
+                (m) => m.status === "upcoming",
               );
               const finishedMatches = matches.filter(
-                (m) => m.status === "finished"
+                (m) => m.status === "finished",
               );
 
               return (

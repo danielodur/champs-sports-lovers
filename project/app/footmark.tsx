@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Calendar, TrendingUp, Star, Play, MessageCircle, Heart, Share, Clock, Trophy, Target, Zap, Eye, ThumbsUp, Bookmark, Filter } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 
 export default function FootmarkScreen() {

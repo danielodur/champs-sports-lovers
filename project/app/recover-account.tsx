@@ -17,19 +17,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Headset, ChevronDown } from "lucide-react-native";
-import { useTheme } from "@/hooks/useTheme";
-import { SafeNavigation } from "@/utils/navigationUtils";
+import { useTheme } from "../hooks/useTheme";
+import { SafeNavigation } from "../utils/navigationUtils";
 import {
   countryCodes,
   getMaxPhoneLength,
   createFlatListData,
   type CountryCode,
-} from "@/utils/countryData";
+} from "../utils/countryData";
 import {
   formatPhoneNumber,
   formatPhoneNumberWithoutCountryCode,
   formatPhoneNumberByCountry,
-} from "@/utils/phoneFormatter";
+} from "../utils/phoneFormatter";
 
 export default function RecoverAccountScreen() {
   const router = useRouter();
@@ -106,8 +106,8 @@ export default function RecoverAccountScreen() {
   const handleSendCode = () => {
     if (!isValidPhone(phoneNumber)) {
       Alert.alert(
-        "Error",
-        `Please enter a valid phone number for ${countryCode}`,
+        "Invalid Phone Number",
+        "Please enter a valid phone number and try again.",
       );
       return;
     }
@@ -118,7 +118,7 @@ export default function RecoverAccountScreen() {
       setSendCodeUsed(true);
       setTimer(40);
       Alert.alert(
-        "Verification Code Sent",
+        "Code Sent",
         "A verification code has been sent to your phone number.",
       );
     }, 1200);
@@ -127,8 +127,8 @@ export default function RecoverAccountScreen() {
   const handleResendCode = () => {
     if (!isValidPhone(phoneNumber)) {
       Alert.alert(
-        "Error",
-        `Please enter a valid phone number for ${countryCode}`,
+        "Invalid Phone Number",
+        "Please enter a valid phone number and try again.",
       );
       return;
     }
@@ -137,7 +137,7 @@ export default function RecoverAccountScreen() {
       setLoading(false);
       setTimer(40);
       Alert.alert(
-        "Verification Code Sent",
+        "Code Sent",
         "A new verification code has been sent to your phone number.",
       );
     }, 1200);
@@ -145,7 +145,7 @@ export default function RecoverAccountScreen() {
 
   const handleVerifyCode = () => {
     if (!code) {
-      Alert.alert("Error", "Please enter the verification code.");
+      Alert.alert("Missing Code", "Please enter the verification code.");
       return;
     }
     // Simulate code verification

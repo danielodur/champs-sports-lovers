@@ -31,13 +31,13 @@ import {
   LogOut,
   Loader,
 } from "lucide-react-native";
-import { useTheme, useThemeMode } from "@/hooks/useTheme";
-import ThemeSelector from "@/components/ThemeSelector";
+import { useTheme, useThemeMode } from "../hooks/useTheme";
+import ThemeSelector from "../components/ThemeSelector";
 import "./i18n";
 import { useTranslation } from "react-i18next";
-import { useLanguage } from "@/contexts/LanguageContext";
-import type { Language } from "@/contexts/LanguageContext";
-import useAuth from "@/hooks/useAuth";
+import { useLanguage } from "../contexts/LanguageContext";
+import type { Language } from "../contexts/LanguageContext";
+import useAuth from "../hooks/useAuth";
 
 export default function SettingsScreen() {
   const router = useRouter();

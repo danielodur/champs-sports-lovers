@@ -1,4 +1,7 @@
-import ApiSportsService from "./api-sports-service";
+import { createApiSportsService } from "./api-sports-service";
+
+// Create a singleton instance
+const apiSportsInstance = createApiSportsService();
 
 export const fixtureService = {
   getFixtures: async (
@@ -7,15 +10,15 @@ export const fixtureService = {
     season?: number,
     date?: string,
     status?: string,
-    live?: string
+    live?: string,
   ) => {
-    return ApiSportsService.getFixtures(
+    return apiSportsInstance.getFixtures(
       teamId,
       leagueId,
       season,
       date,
       status,
-      live
+      live,
     );
   },
 };

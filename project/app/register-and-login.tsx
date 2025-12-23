@@ -13,24 +13,26 @@ import {
   Vibration,
   BackHandler,
   ActivityIndicator,
+  StatusBar,
+  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Trophy, ChevronDown } from "lucide-react-native";
-import { useTheme, useThemeMode } from "@/hooks/useTheme";
+import { useTheme, useThemeMode } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
-import useAuth from "@/hooks/useAuth";
-import { SafeNavigation } from "@/utils/navigationUtils";
+import useAuth from "../hooks/useAuth";
+import { SafeNavigation } from "../utils/navigationUtils";
 import {
   formatPhoneNumber,
   formatPhoneNumberWithoutCountryCode,
   formatPhoneNumberByCountry,
-} from "@/utils/phoneFormatter";
+} from "../utils/phoneFormatter";
 import {
   countryCodes,
   getMaxPhoneLength,
   createFlatListData,
   type CountryCode,
-} from "@/utils/countryData";
+} from "../utils/countryData";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { AuthError } from "@supabase/supabase-js";
 
@@ -172,16 +174,13 @@ export default function RegisterAndLoginScreen() {
         { text: "OK" },
       ]);
     } catch (error) {
-      console.error("Error sending verification code:", error);
+      console.log("Error sending verification code");
 
-      if (error instanceof AuthError) {
-        Alert.alert("Error", error.message);
-      } else {
-        Alert.alert(
-          "Error",
-          "SMS provider not configured. For testing, use code 1234 with any phone number.",
-        );
-      }
+      // Use professional error messages for all cases
+      Alert.alert(
+        "Error",
+        "Unable to send verification code. Please try again or use email registration instead.",
+      );
     } finally {
       setIsLoginLoading(false);
     }
@@ -208,13 +207,10 @@ export default function RegisterAndLoginScreen() {
       router.replace("/(tabs)");
       Vibration.vibrate(100);
     } catch (error) {
-      console.error("Error verifying OTP:", error);
+      console.log("Error verifying OTP");
 
-      if (error instanceof AuthError) {
-        Alert.alert("Error", error.message);
-      } else {
-        Alert.alert("Error", "Invalid verification code. Please try again.");
-      }
+      // Use consistent professional error message
+      Alert.alert("Error", "Invalid verification code. Please try again.");
     } finally {
       setIsLoginLoading(false);
     }
@@ -259,9 +255,36 @@ export default function RegisterAndLoginScreen() {
   };
 
   return (
-    <View
+    <SafeAreaView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
+      <StatusBar
+        barStyle={themeMode === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={theme.colors.background}
+      />
+
+      {/* Fixed Header */}
+      <View
+        style={[
+          styles.fixedHeader,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => {
+            SafeNavigation.goBack(router, "/login-register", "replace");
+          }}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <ChevronLeft size={28} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+          Phone Verification
+        </Text>
+        <View style={styles.headerRight} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
@@ -271,38 +294,21 @@ export default function RegisterAndLoginScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              onPress={() => {
-                SafeNavigation.goBack(router, "/login-register", "replace");
-              }}
-              style={styles.backButton}
-              activeOpacity={0.7}
-            >
-              <ChevronLeft size={28} color={theme.colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
-              {t("Welcome to Champs")}
-            </Text>
-            <View style={styles.headerRight} />
-          </View>
-
-          {/* Logo and Title */}
-          <View style={styles.logoContainer}>
+          {/* Logo Section */}
+          <View style={styles.logoSection}>
             <View
-              style={[styles.logo, { backgroundColor: theme.colors.primary }]}
+              style={[
+                styles.logoIcon,
+                { backgroundColor: theme.colors.primary },
+              ]}
             >
-              <Trophy size={40} color="#FFFFFF" />
+              <Trophy size={32} color="#FFFFFF" />
             </View>
-            <Text style={[styles.appTitle, { color: theme.colors.text }]}>
+            <Text style={[styles.appName, { color: theme.colors.text }]}>
               Champs
             </Text>
             <Text
-              style={[
-                styles.appSubtitle,
-                { color: theme.colors.textSecondary },
-              ]}
+              style={[styles.tagline, { color: theme.colors.textSecondary }]}
             >
               {t("Your Ultimate Sports Companion")}
             </Text>
@@ -317,11 +323,11 @@ export default function RegisterAndLoginScreen() {
                   backgroundColor:
                     selectedMethod === "phone"
                       ? theme.colors.primary
-                      : theme.colors.backgroundSecondary,
+                      : "rgba(255,255,255,0.1)",
                   borderColor:
                     selectedMethod === "phone"
                       ? theme.colors.primary
-                      : theme.colors.border,
+                      : "rgba(255,255,255,0.2)",
                 },
               ]}
               onPress={() => setSelectedMethod("phone")}
@@ -329,7 +335,7 @@ export default function RegisterAndLoginScreen() {
             >
               <Ionicons
                 name="call"
-                size={20}
+                size={22}
                 color={
                   selectedMethod === "phone" ? "#FFFFFF" : theme.colors.text
                 }
@@ -356,11 +362,11 @@ export default function RegisterAndLoginScreen() {
                   backgroundColor:
                     selectedMethod === "whatsapp"
                       ? theme.colors.primary
-                      : theme.colors.backgroundSecondary,
+                      : "rgba(255,255,255,0.1)",
                   borderColor:
                     selectedMethod === "whatsapp"
                       ? theme.colors.primary
-                      : theme.colors.border,
+                      : "rgba(255,255,255,0.2)",
                 },
               ]}
               onPress={() => setSelectedMethod("whatsapp")}
@@ -368,7 +374,7 @@ export default function RegisterAndLoginScreen() {
             >
               <Ionicons
                 name="logo-whatsapp"
-                size={20}
+                size={22}
                 color={
                   selectedMethod === "whatsapp" ? "#FFFFFF" : theme.colors.text
                 }
@@ -637,7 +643,7 @@ export default function RegisterAndLoginScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -651,73 +657,95 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 40,
+    paddingTop: 10,
   },
-  header: {
+  fixedHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    zIndex: 1000,
   },
   backButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   headerTitle: {
-    fontSize: 18,
-    fontFamily: "Inter-SemiBold",
+    fontSize: 20,
+    fontFamily: "Inter-Bold",
+    textAlign: "center",
   },
   headerRight: {
-    width: 36,
+    width: 44,
   },
-  logoContainer: {
+  logoSection: {
     alignItems: "center",
     marginTop: 20,
-    marginBottom: 40,
+    marginBottom: 30,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  logoIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  appTitle: {
-    fontSize: 32,
+  appName: {
+    fontSize: 24,
     fontFamily: "Inter-Bold",
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  appSubtitle: {
-    fontSize: 16,
+  tagline: {
+    fontSize: 14,
     fontFamily: "Inter-Regular",
     textAlign: "center",
   },
   methodContainer: {
     flexDirection: "row",
     marginHorizontal: 20,
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 30,
+    gap: 16,
   },
   methodButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    gap: 10,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   methodButtonText: {
-    fontSize: 16,
-    fontFamily: "Inter-Medium",
+    fontSize: 17,
+    fontFamily: "Inter-SemiBold",
   },
   phoneInputContainer: {
     flexDirection: "row",
     marginHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 30,
     gap: 12,
   },
   countryCodeButton: {
@@ -725,24 +753,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    minWidth: 80,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    minWidth: 90,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
   countryCodeText: {
-    fontSize: 16,
-    fontFamily: "Inter-Medium",
+    fontSize: 17,
+    fontFamily: "Inter-SemiBold",
     marginRight: 8,
   },
   phoneInput: {
     flex: 1,
-    height: 48,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    fontFamily: "Inter-Regular",
-    borderWidth: 1,
+    height: 56,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    fontSize: 17,
+    fontFamily: "Inter-Medium",
+    borderWidth: 2,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
   countryPickerContainer: {
     position: "absolute",
@@ -826,27 +858,38 @@ const styles = StyleSheet.create({
   },
   verificationContainer: {
     marginHorizontal: 20,
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 30,
+    gap: 16,
   },
   verificationInput: {
-    height: 48,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    fontFamily: "Inter-Regular",
-    borderWidth: 1,
+    height: 56,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    fontSize: 17,
+    fontFamily: "Inter-Medium",
+    borderWidth: 2,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderColor: "rgba(255,255,255,0.2)",
   },
   sendCodeButton: {
-    height: 48,
-    borderRadius: 24,
+    height: 56,
+    borderRadius: 28,
+    paddingHorizontal: 40,
     justifyContent: "center",
     alignItems: "center",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   sendCodeButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Inter-SemiBold",
+    fontSize: 17,
+    fontFamily: "Inter-Bold",
   },
   termsContainer: {
     marginHorizontal: 20,
@@ -876,20 +919,29 @@ const styles = StyleSheet.create({
     fontFamily: "Inter-SemiBold",
   },
   verifyButton: {
-    height: 48,
-    borderRadius: 24,
+    height: 56,
+    borderRadius: 28,
     justifyContent: "center",
     alignItems: "center",
     marginHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 30,
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   verifyButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontFamily: "Inter-SemiBold",
+    fontSize: 18,
+    fontFamily: "Inter-Bold",
   },
   additionalOptions: {
     alignItems: "center",
+    marginTop: 10,
   },
   additionalOption: {
     padding: 8,

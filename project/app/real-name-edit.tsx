@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, KeyboardAvo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { X, User, Check } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
-import useAuth from '@/hooks/useAuth';
+import useAuth from '../hooks/useAuth';
 
 // Simple in-memory storage for demonstration (in real app, use AsyncStorage)
 declare global {

@@ -29,7 +29,7 @@ import {
   HelpCircle,
   MessageCircle
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 
 interface Transaction {

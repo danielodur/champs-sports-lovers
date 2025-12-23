@@ -11,6 +11,11 @@ import {
   Dimensions,
   StatusBar,
 } from "react-native";
+import {
+  getOptimizedScrollStyles,
+  detailsScrollConfig,
+  horizontalTabScrollConfig,
+} from "../../utils/scrollPerformance";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Svg, { Path } from "react-native-svg";
@@ -53,20 +58,20 @@ import {
   Mail,
 } from "lucide-react-native";
 import QRCode from "react-native-qrcode-svg";
-import ThemeSelector from "@/components/ThemeSelector";
-import MoreFeaturesButton from "@/components/MoreFeaturesButton";
-import { useTheme, useThemeMode } from "@/hooks/useTheme";
-import { useMessages } from "@/contexts/MessagesContext";
-import { useInvites } from "@/contexts/InvitesContext";
+import ThemeSelector from "../../components/ThemeSelector";
+import MoreFeaturesButton from "../../components/MoreFeaturesButton";
+import { useTheme, useThemeMode } from "../../hooks/useTheme";
+import { useMessages } from "../../contexts/MessagesContext";
+import { useInvites } from "../../contexts/InvitesContext";
 import { useTranslation } from "react-i18next";
-import useAuth from "@/hooks/useAuth";
-import { SafeNavigation } from "@/utils/navigationUtils";
+import useAuth from "../../hooks/useAuth";
+import { SafeNavigation } from "../../utils/navigationUtils";
 import * as Location from "expo-location";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   getCurrentUsername,
   getCurrentProfilePicture,
-} from "@/utils/userDataHelpers";
+} from "../../utils/userDataHelpers";
 
 // Simple in-memory storage for demonstration (in real app, use AsyncStorage)
 declare global {
@@ -1059,14 +1064,22 @@ export default function ProfileScreen() {
       edges={["top"]}
     >
       <ScrollView
-        style={[styles.scrollView, { backgroundColor: "#4A4A4A" }]}
+        style={[
+          styles.scrollView,
+          { backgroundColor: "#4A4A4A" },
+          getOptimizedScrollStyles(),
+        ]}
         showsVerticalScrollIndicator={false}
         scrollEnabled={true}
-        bounces={true}
-        scrollEventThrottle={16}
-        decelerationRate="normal"
+        bounces={detailsScrollConfig.bounces}
+        scrollEventThrottle={detailsScrollConfig.scrollEventThrottle}
+        decelerationRate={detailsScrollConfig.decelerationRate}
         contentContainerStyle={{ flexGrow: 1, backgroundColor: "#4A4A4A" }}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps={
+          detailsScrollConfig.keyboardShouldPersistTaps
+        }
+        keyboardDismissMode={detailsScrollConfig.keyboardDismissMode}
+        removeClippedSubviews={detailsScrollConfig.removeClippedSubviews}
       >
         {/* Main Profile Background */}
         <View
@@ -1124,12 +1137,12 @@ export default function ProfileScreen() {
                         source={{
                           uri:
                             getCurrentProfilePicture(userInfo) ||
-                            require("@/assets/images/icon.png"),
+                            require("../../assets/images/icon.png"),
                         }}
                         style={styles.avatarImage}
                         fadeDuration={0}
                         resizeMode="cover"
-                        defaultSource={require("@/assets/images/icon.png")}
+                        defaultSource={require("../../assets/images/icon.png")}
                       />
                     </View>
                   </View>
@@ -1286,7 +1299,7 @@ export default function ProfileScreen() {
                     style={styles.avatarImage}
                     fadeDuration={0}
                     resizeMode="cover"
-                    defaultSource={require("@/assets/images/icon.png")}
+                    defaultSource={require("../../assets/images/icon.png")}
                   />
                 </View>
                 <TouchableOpacity
@@ -1461,7 +1474,20 @@ export default function ProfileScreen() {
             ]}
           >
             <SafeAreaView style={styles.sideMenuContent}>
-              <ScrollView style={styles.sideMenuScroll}>
+              <ScrollView
+                style={styles.sideMenuScroll}
+                showsVerticalScrollIndicator={false}
+                removeClippedSubviews={
+                  detailsScrollConfig.removeClippedSubviews
+                }
+                scrollEventThrottle={detailsScrollConfig.scrollEventThrottle}
+                bounces={detailsScrollConfig.bounces}
+                decelerationRate={detailsScrollConfig.decelerationRate}
+                keyboardShouldPersistTaps={
+                  detailsScrollConfig.keyboardShouldPersistTaps
+                }
+                keyboardDismissMode={detailsScrollConfig.keyboardDismissMode}
+              >
                 {/* Grouped Menu Items */}
                 <View style={styles.verticalMenuSection}>
                   {menuGroups.map((group, groupIndex) => (
@@ -1595,6 +1621,20 @@ export default function ProfileScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.shareOptions}
               style={styles.shareScrollView}
+              removeClippedSubviews={
+                horizontalTabScrollConfig.removeClippedSubviews
+              }
+              scrollEventThrottle={
+                horizontalTabScrollConfig.scrollEventThrottle
+              }
+              bounces={horizontalTabScrollConfig.bounces}
+              decelerationRate={horizontalTabScrollConfig.decelerationRate}
+              keyboardShouldPersistTaps={
+                horizontalTabScrollConfig.keyboardShouldPersistTaps
+              }
+              keyboardDismissMode={
+                horizontalTabScrollConfig.keyboardDismissMode
+              }
             >
               {/* WhatsApp */}
               <TouchableOpacity style={styles.shareOption}>

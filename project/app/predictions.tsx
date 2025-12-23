@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, TrendingUp, Star, Crown, Lock, Clock as Unlock, BarChart3, Trophy, Zap, Eye, Users, Calendar, Clock, Target, Award, Shield, CircleCheck as CheckCircle, Percent } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 
 interface Prediction {

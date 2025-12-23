@@ -1,0 +1,251 @@
+# Qoder AI Ignore Patterns for Champs Sports Lovers
+# Version: 1.0 (2025-12-04)
+#
+# CRITICAL: Files matching these patterns are COMPLETELY OFF-LIMITS to AI operations.
+# AI must treat these files as if they DO NOT EXIST in the workspace.
+# NO EXCEPTIONS - DO NOT read, modify, display, log, or reference these files.
+
+# ==================================================================================
+# SECURITY & ENVIRONMENT FILES (HIGHEST PRIORITY - ABSOLUTE BLOCK)
+# ==================================================================================
+
+# Environment files - NEVER access these
+**/.env
+**/.env.*
+**/.env.local
+**/.env.development
+**/.env.production
+**/.env.staging
+**/.env.test
+**/project/.env.local
+.env
+.env.*
+project/.env.local
+
+# Security certificates and keys - NEVER access these
+**/*.pem
+**/*.key
+**/*.p8
+**/*.p12
+**/*.jks
+**/*.keystore
+**/*.mobileprovision
+**/*.cer
+**/*.crt
+**/*.pfx
+
+# Service account and auth files - NEVER access these
+**/google-services.json
+**/GoogleService-Info.plist
+**/serviceAccountKey.json
+**/firebase-adminsdk-*.json
+**/*-credentials.json
+**/*-service-account.json
+
+# SSH and GPG keys - NEVER access these
+**/.ssh/**
+**/*.asc
+**/*.gpg
+
+# ==================================================================================
+# BUILD ARTIFACTS & DEPENDENCIES (READ-ONLY - DO NOT MODIFY)
+# ==================================================================================
+
+# Package manager artifacts
+node_modules/
+**/node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+out/
+web-build/
+.expo/
+.expo-shared/
+.next/
+.turbo/
+
+# Platform-specific builds
+ios/
+android/
+.gradle/
+*.xcworkspace/
+*.xcodeproj/
+
+# ==================================================================================
+# VERSION CONTROL & HISTORY (READ-ONLY - DO NOT MODIFY)
+# ==================================================================================
+
+# Git internals - NEVER modify
+.git/
+.gitmodules
+.gitattributes
+
+# Editor history - NEVER modify
+.history/
+**/.history/
+
+# ==================================================================================
+# CACHES & TEMPORARY FILES (IGNORE - DO NOT ACCESS)
+# ==================================================================================
+
+# General caches
+.cache/
+**/.cache/
+*.cache
+.temp/
+.tmp/
+temp/
+tmp/
+coverage/
+.nyc_output/
+
+# Logs - NEVER access or display
+*.log
+logs/
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==================================================================================
+# IDE & EDITOR CONFIGURATION (DO NOT MODIFY WITHOUT PERMISSION)
+# ==================================================================================
+
+# Qoder IDE (PRIMARY)
+.qoder/
+**/.qoder/
+
+# Other IDEs (for compatibility if user switches editors)
+.cursor/
+**/.cursor/
+.zed/
+**/.zed/
+.kiro/
+**/.kiro/
+.idea/
+.vscode/
+.vs/
+.continue/
+*.swp
+*.swo
+*~
+
+# ==================================================================================
+# SUPABASE BACKEND (PERMISSION REQUIRED - DO NOT MODIFY)
+# ==================================================================================
+
+# Supabase internal artifacts
+supabase/.branches/
+supabase/.temp/
+supabase/generated/
+
+# Database dumps and backups
+**/*.sql.backup
+**/*.dump
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# ==================================================================================
+# PROJECT-SPECIFIC PROTECTED PATHS
+# ==================================================================================
+
+# Raw and generated assets (large files, protected sources)
+project/assets/images/raw/**
+project/assets/images/generated/**
+project/assets/fonts/licensed/**
+
+# Generated TypeScript definitions (auto-generated, should not be manually edited)
+**/*.d.ts
+!project/types/**/*.d.ts
+!project/nativewind-env.d.ts
+
+# Test snapshots and coverage (auto-generated)
+**/__snapshots__/
+**/.jest/
+**/coverage/
+
+# ==================================================================================
+# DOCUMENTATION & MARKDOWN (PERMISSION REQUIRED BEFORE MODIFICATION)
+# ==================================================================================
+
+# All markdown files require permission to modify
+**/*.md
+!README.md
+
+# Changelog and release notes
+CHANGELOG.md
+HISTORY.md
+RELEASES.md
+
+# ==================================================================================
+# CONFIGURATION FILES (PERMISSION REQUIRED BEFORE MODIFICATION)
+# ==================================================================================
+
+# Package and dependency configs
+**/package.json
+**/package-lock.json
+**/tsconfig.json
+**/jsconfig.json
+
+# Build and bundler configs
+**/webpack.config.js
+**/vite.config.js
+**/rollup.config.js
+**/metro.config.js
+**/babel.config.js
+
+# Expo configs
+**/app.json
+**/eas.json
+**/expo-env.d.ts
+
+# Linting and formatting configs
+**/.eslintrc*
+**/.prettierrc*
+**/.stylelintrc*
+**/.editorconfig
+
+# Testing configs
+**/jest.config.js
+**/vitest.config.js
+**/.mocharc*
+
+# ==================================================================================
+# TEST AND VERIFICATION FILES (SHOULD NOT EXIST PER FRONTEND POLICY)
+# ==================================================================================
+
+# SQL files - MUST NOT exist in frontend
+**/*.sql
+!supabase/migrations/*.sql
+
+# Test and verification scripts
+**/test-*.sh
+**/verify-*.sh
+**/test-*.js
+**/verify-*.js
+
+# ==================================================================================
+# END OF .qoderignore
+# ==================================================================================
+
+# REMINDER TO AI:
+# If you need to work with ANY file matching these patterns:
+#   1. STOP immediately
+#   2. Inform the user which protected file is involved
+#   3. Explain WHY you need to access it
+#   4. WAIT for explicit written permission
+#   5. Only proceed if user gives clear approval
+#
+# For .env* files: NEVER access under ANY circumstances. No exceptions.
+# This file works in conjunction with .qoderrules.toml

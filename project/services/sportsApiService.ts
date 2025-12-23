@@ -1,5 +1,6 @@
-import { Match } from "@/types/match";
+import { Match } from "../types/match";
 import Constants from "expo-constants";
+import { backendApiService } from "./backendApiService";
 
 // Simplified rate limiting and caching
 class SimpleCache {
@@ -33,7 +34,7 @@ const cache = new SimpleCache();
 const API_CONFIG = {
   API_FOOTBALL: {
     BASE_URL: "https://api-football-v1.p.rapidapi.com/v3",
-    API_KEY: process.env.EXPO_PUBLIC_API_SPORT_KEY || "",
+    API_KEY: process.env.EXPO_API_FOOTBALL_KEY || "",
     API_HOST: "api-football-v1.p.rapidapi.com",
   },
 };
@@ -612,9 +613,9 @@ class SportsApiService {
     }
 
     try {
-      console.log("🔴 Fetching live football matches...");
-      const fixtures = await this.getLiveFootballMatches();
-      console.log(`📊 Raw fixtures from API: ${fixtures.length} matches`);
+      console.log("🔴 Fetching live football matches from backend...");
+      const fixtures = await backendApiService.getLiveMatches(sport);
+      console.log(`📊 Raw fixtures from backend: ${fixtures.length} matches`);
 
       const liveScores = fixtures.map((fixture) =>
         this.convertFootballToLiveScore(fixture),
@@ -631,7 +632,7 @@ class SportsApiService {
       // ONLY REAL DATA - No mock fallbacks
       if (liveScores.length === 0) {
         console.log(
-          "ℹ️ No live matches currently available from API - this is normal when no games are being played",
+          "ℹ️ No live matches currently available from backend - this is normal when no games are being played",
         );
       }
 
@@ -653,25 +654,13 @@ class SportsApiService {
       const currentDate = new Date();
       const targetDate = date || currentDate.toISOString().split("T")[0];
 
-      // Always fetch both today and tomorrow to ensure we don't miss matches
-      const today = targetDate;
-      const tomorrow = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0];
+      console.log(`📅 Fetching fixtures from backend for ${targetDate}`);
 
-      console.log(`📅 Fetching fixtures for ${today} and ${tomorrow}`);
-
-      // Fetch fixtures for both dates
-      const [todayFixtures, tomorrowFixtures] = await Promise.all([
-        this.getFootballFixturesByDate(today),
-        this.getFootballFixturesByDate(tomorrow),
-      ]);
-
-      // Combine all fixtures
-      const allFixtures = [...todayFixtures, ...tomorrowFixtures];
+      // Fetch fixtures from backend
+      const fixtures = await backendApiService.getFixtures(sport, targetDate);
 
       // Filter for upcoming matches only (not live or finished)
-      const upcomingFixtures = allFixtures.filter((fixture) => {
+      const upcomingFixtures = fixtures.filter((fixture: FootballFixture) => {
         const status = fixture.fixture.status.short;
         return status === "NS" || status === "TBD" || status === "PST";
       });
@@ -696,7 +685,7 @@ class SportsApiService {
       );
 
       console.log(
-        `📅 Fixtures processed: ${allFixtures.length} total → ${upcomingFixtures.length} upcoming → ${filteredScores.length} in next 24h`,
+        `📅 Fixtures processed: ${fixtures.length} total → ${upcomingFixtures.length} upcoming → ${filteredScores.length} in next 24h`,
       );
       return filteredScores;
     } catch (error) {
@@ -712,7 +701,8 @@ class SportsApiService {
     }
 
     try {
-      const fixtures = await this.getFinishedMatchesToday();
+      console.log("🏁 Fetching finished matches from backend...");
+      const fixtures = await backendApiService.getFinishedMatches(sport);
       const liveScores = fixtures.map((fixture) =>
         this.convertFootballToLiveScore(fixture),
       );

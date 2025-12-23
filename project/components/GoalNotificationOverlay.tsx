@@ -1,9 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { useMatchSettings } from '@/contexts/MatchSettingsContext';
-import { useTheme } from '@/hooks/useTheme';
-import { playGoalSound, playRedCardSound } from '@/utils/SoundManager';
-import { vibrateForGoal, vibrateForRedCard } from '@/utils/VibrationManager';
+import { usePathname } from 'expo-router';
+import { useMatchSettings } from '../contexts/MatchSettingsContext';
+import { useTheme } from '../hooks/useTheme';
+import { playGoalSound, playRedCardSound } from '../utils/SoundManager';
+import { vibrateForGoal, vibrateForRedCard } from '../utils/VibrationManager';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -205,32 +206,39 @@ const CompactGoalAlert: React.FC<CompactGoalAlertProps> = ({ notification, index
 
 export default function GoalNotificationOverlay() {
   const { goalNotifications, settings } = useMatchSettings();
+  const pathname = usePathname();
 
+  // ✅ HIDE ON MATCH-DETAILS: Don't show global goal alerts when viewing match-details screen
+  // match-details-main.tsx has its own dedicated goal alert system
+  const isOnMatchDetails = pathname.includes('match-details') || pathname.includes('competition-details');
+  
   useEffect(() => {
-    if (goalNotifications.length > 0) {
-      const latestNotification = goalNotifications[goalNotifications.length - 1];
-      
-      // Play sound based on notification type
-      if (latestNotification.eventType === 'red_card') {
-        // Red card sound
-        playRedCardSound(settings);
-      } else {
-        // Goal sound - determine team based on scorer or use general goal sound
-        const team = latestNotification.scoringTeam || 'general';
-        playGoalSound(team, settings);
-      }
-      
-      // Vibration if enabled
-      if (latestNotification.eventType === 'red_card') {
-        vibrateForRedCard(settings);
-      } else {
-        const team = latestNotification.scoringTeam || 'general';
-        vibrateForGoal(team, settings);
-      }
+    // Don't play sounds/vibrations when on match-details (its own alert handles that)
+    if (isOnMatchDetails || goalNotifications.length === 0) return;
+    
+    const latestNotification = goalNotifications[goalNotifications.length - 1];
+    
+    // Play sound based on notification type
+    if (latestNotification.eventType === 'red_card') {
+      // Red card sound
+      playRedCardSound(settings);
+    } else {
+      // Goal sound - determine team based on scorer or use general goal sound
+      const team = latestNotification.scoringTeam || 'general';
+      playGoalSound(team, settings);
     }
-  }, [goalNotifications.length, settings]);
+    
+    // Vibration if enabled
+    if (latestNotification.eventType === 'red_card') {
+      vibrateForRedCard(settings);
+    } else {
+      const team = latestNotification.scoringTeam || 'general';
+      vibrateForGoal(team, settings);
+    }
+  }, [goalNotifications.length, settings, isOnMatchDetails]);
 
-  if (!goalNotifications.length || !settings.goalNotification) {
+  // ✅ HIDE OVERLAY: Don't render when on match-details screen or if no notifications
+  if (isOnMatchDetails || !goalNotifications.length || !settings.goalNotification) {
     return null;
   }
 
@@ -267,7 +275,7 @@ const styles = StyleSheet.create({
   },
   alertBanner: {
     flexDirection: 'row',
-    backgroundColor: '#B91C1C', // Duller red color (was #E53E3E)
+    backgroundColor: '#EF5350', // Salmon red color matching animation preview
     borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 10, // Increased vertical padding

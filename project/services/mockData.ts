@@ -1,129 +1,47 @@
-// Mock data for fallback when APIs fail
-export const mockLiveMatches = [
-  {
-    id: 'mock-live-1',
-    homeTeam: 'Arsenal',
-    awayTeam: 'Chelsea',
-    homeScore: 2,
-    awayScore: 1,
-    status: 'live' as const,
-    minute: 67,
-    sport: 'football',
-    league: 'Premier League',
-    date: new Date().toISOString(),
-  },
-  {
-    id: 'mock-live-2', 
-    homeTeam: 'Manchester City',
-    awayTeam: 'Liverpool',
-    homeScore: 1,
-    awayScore: 1,
-    status: 'live' as const,
-    minute: 45,
-    sport: 'football',
-    league: 'Premier League',
-    date: new Date().toISOString(),
-  },
-  {
-    id: 'mock-live-3',
-    homeTeam: 'Real Madrid',
-    awayTeam: 'Barcelona',
-    homeScore: 0,
-    awayScore: 2,
-    status: 'live' as const,
-    minute: 78,
-    sport: 'football',
-    league: 'La Liga',
-    date: new Date().toISOString(),
-  },
-  {
-    id: 'mock-live-4',
-    homeTeam: 'Bayern Munich',
-    awayTeam: 'Borussia Dortmund',
-    homeScore: 3,
-    awayScore: 0,
-    status: 'live' as const,
-    minute: 82,
-    sport: 'football',
-    league: 'Bundesliga',
-    date: new Date().toISOString(),
-  },
-  {
-    id: 'mock-live-5',
-    homeTeam: 'PSG',
-    awayTeam: 'Marseille',
-    homeScore: 1,
-    awayScore: 0,
-    status: 'live' as const,
-    minute: 23,
-    sport: 'football',
-    league: 'Ligue 1',
-    date: new Date().toISOString(),
-  }
-];
+// ❌ MOCK DATA COMPLETELY DISABLED - REAL API ONLY
+// This file has been disabled to ensure only real API data is used
+// No mock data should ever be displayed in the app
 
-export const mockUpcomingMatches = [
-  {
-    id: 'mock-upcoming-1',
-    homeTeam: 'Tottenham',
-    awayTeam: 'West Ham',
-    homeScore: 0,
-    awayScore: 0,
-    status: 'upcoming' as const,
-    minute: 0,
-    sport: 'football',
-    league: 'Premier League',
-    date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-  },
-  {
-    id: 'mock-upcoming-2',
-    homeTeam: 'AC Milan',
-    awayTeam: 'Inter Milan',
-    homeScore: 0,
-    awayScore: 0,
-    status: 'upcoming' as const,
-    minute: 0,
-    sport: 'football',
-    league: 'Serie A',
-    date: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(), // 4 hours from now
-  },
-  {
-    id: 'mock-upcoming-3',
-    homeTeam: 'Atletico Madrid',
-    awayTeam: 'Valencia',
-    homeScore: 0,
-    awayScore: 0,
-    status: 'upcoming' as const,
-    minute: 0,
-    sport: 'football',
-    league: 'La Liga',
-    date: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // 6 hours from now
-  }
-];
+console.warn(
+  "🚫 MOCK DATA SERVICE ACCESSED - This should not happen in production!",
+);
+console.warn("📋 All mock data has been disabled to ensure real API data only");
 
-export const mockFinishedMatches = [
-  {
-    id: 'mock-finished-1',
-    homeTeam: 'Newcastle',
-    awayTeam: 'Brighton',
-    homeScore: 2,
-    awayScore: 0,
-    status: 'finished' as const,
-    minute: 90,
-    sport: 'football',
-    league: 'Premier League',
-    date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-  },
-  {
-    id: 'mock-finished-2',
-    homeTeam: 'Juventus',
-    awayTeam: 'Roma',
-    homeScore: 1,
-    awayScore: 3,
-    status: 'finished' as const,
-    minute: 90,
-    sport: 'football',
-    league: 'Serie A',
-    date: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-  }
-];
+export const mockLiveMatches: never[] = [];
+export const mockUpcomingMatches: never[] = [];
+export const mockFinishedMatches: never[] = [];
+
+// Log warning if any component tries to use mock data
+const logMockDataWarning = (dataType: string) => {
+  console.error(`❌ ATTEMPTED TO USE MOCK DATA: ${dataType}`);
+  console.error("🔧 Fix required: Update component to use real API data only");
+  console.error(
+    "📋 Check API configuration and ensure EXPO_PUBLIC_API_FOOTBALL_KEY is set",
+  );
+};
+
+// Override exports to prevent usage
+export const getMockLiveMatches = () => {
+  logMockDataWarning("Live Matches");
+  return [];
+};
+
+export const getMockUpcomingMatches = () => {
+  logMockDataWarning("Upcoming Matches");
+  return [];
+};
+
+export const getMockFinishedMatches = () => {
+  logMockDataWarning("Finished Matches");
+  return [];
+};
+
+// Export empty arrays to prevent crashes but ensure no data is returned
+export default {
+  mockLiveMatches: [],
+  mockUpcomingMatches: [],
+  mockFinishedMatches: [],
+  getMockLiveMatches,
+  getMockUpcomingMatches,
+  getMockFinishedMatches,
+};

@@ -1,0 +1,32 @@
+# Environment Variables Template for Champs Sports Lovers App
+# Copy this file to .env.local and fill in your actual values
+
+# Supabase Configuration
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_url_here
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# API Football Configuration (for national team players data) - ALREADY CONFIGURED
+EXPO_PUBLIC_API_FOOTBALL_KEY=your_existing_api_football_key
+EXPO_PUBLIC_THE_SPORTSDB_API_KEY=your_existing_sportsdb_key
+
+# Instructions:
+# ✅ Your API keys are already configured and working!
+# The system will use your existing EXPO_PUBLIC_API_FOOTBALL_KEY for national team data
+# This provides real player names, photos, positions, and team information
+# Rate limit: Check your current API subscription limits
+
+# API-Sports.io Features Used:
+# - GET /teams (to find national team IDs by country)
+# - GET /players (to get national team squads with photos)
+# - Real player photos and current squad information
+# - Covers all 22 countries in your National Teams screen
+
+# Alternative APIs (if needed):
+# EXPO_PUBLIC_FOOTBALL_API_KEY=alternative_football_api_key
+# EXPO_PUBLIC_SPORTMONKS_KEY=alternative_sportmonks_key
+
+# Development Notes:
+# - Players data is cached for 24 hours to reduce API calls
+# - Fallback to placeholder data if API fails
+# - Automatic photo loading with error handling
+# - Batch requests to respect rate limits

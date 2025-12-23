@@ -5,7 +5,7 @@ import {
   authService,
   AuthState as SupabaseAuthState,
   UserProfile,
-} from "@/services/authService";
+} from "../services/authService";
 import { User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
@@ -27,12 +27,12 @@ interface AuthState {
   verifyPhoneOtp: (phone: string, token: string) => Promise<{ error?: any }>;
   signInWithEmail: (
     email: string,
-    password: string
+    password: string,
   ) => Promise<{ error?: any }>;
   signUpWithEmail: (
     email: string,
     password: string,
-    username?: string
+    username?: string,
   ) => Promise<{ error?: any }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error?: any }>;
   resetPassword: (email: string) => Promise<{ error?: any }>;
@@ -40,12 +40,12 @@ interface AuthState {
   signInWithGoogle: () => Promise<{ error?: any; url?: string }>;
   signInWithFacebook: () => Promise<{ error?: any; url?: string }>;
   signInWithSocial: (
-    provider: "google" | "facebook"
+    provider: "google" | "facebook",
   ) => Promise<{ error?: any; url?: string }>;
   // Legacy methods for compatibility
   setLoggedIn: (
     loggedIn: boolean,
-    userInfo?: { username: string; avatar?: string }
+    userInfo?: { username: string; avatar?: string },
   ) => void;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
@@ -83,7 +83,7 @@ const useAuth = create<AuthState>()(
       signUpWithEmail: async (
         email: string,
         password: string,
-        username?: string
+        username?: string,
       ) => {
         return await authService.signUpWithEmail(email, password, username);
       },
@@ -112,7 +112,10 @@ const useAuth = create<AuthState>()(
       },
 
       // ✅ ENHANCED: Legacy compatibility method with persistence
-      setLoggedIn: (loggedIn, userInfo) => {
+      setLoggedIn: (
+        loggedIn: boolean,
+        userInfo?: { username: string; avatar?: string },
+      ) => {
         console.log("🔐 setLoggedIn called with:", { loggedIn, userInfo });
 
         if (!loggedIn) {
@@ -188,7 +191,7 @@ const useAuth = create<AuthState>()(
 
           console.log(
             "✅ Test user profile created and persisted with full features:",
-            mockProfile.username
+            mockProfile.username,
           );
         }
       },
@@ -201,7 +204,7 @@ const useAuth = create<AuthState>()(
           if (authType === "supabase") {
             const { error } = await authService.signOut();
             if (error) {
-              console.error("Error signing out from Supabase:", error);
+              console.log("Error signing out from Supabase");
             }
           }
 
@@ -217,7 +220,7 @@ const useAuth = create<AuthState>()(
             logoutLoading: false,
           });
         } catch (error) {
-          console.error("Error during logout:", error);
+          console.log("Error during logout");
           set({ logoutLoading: false });
         }
       },
@@ -230,7 +233,7 @@ const useAuth = create<AuthState>()(
           const currentState = get();
           if (currentState.authType === "test" && currentState.isLoggedIn) {
             console.log(
-              "🔧 Test authentication found, skipping Supabase initialization"
+              "🔧 Test authentication found, skipping Supabase initialization",
             );
             set({ loading: false });
             return;
@@ -240,7 +243,7 @@ const useAuth = create<AuthState>()(
           await authService.initializeAuth();
           // State will be updated by the auth state listener for Supabase auth
         } catch (error) {
-          console.error("Error initializing auth:", error);
+          console.log("Error initializing auth");
           set({
             isLoggedIn: false,
             user: null,
@@ -257,15 +260,15 @@ const useAuth = create<AuthState>()(
       name: "auth-storage",
       storage: createJSONStorage(() => AsyncStorage),
       // ✅ Persist critical auth state
-      partialize: (state) => ({
+      partialize: (state: any) => ({
         isLoggedIn: state.isLoggedIn,
         userInfo: state.userInfo,
         user: state.user,
         profile: state.profile,
         authType: state.authType,
       }),
-    }
-  )
+    },
+  ),
 );
 
 // ✅ ENHANCED: Subscribe to auth state changes from Supabase with conflict prevention

@@ -29,9 +29,9 @@ import {
   Paintbrush,
   ChevronRight,
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { useMessages } from '@/contexts/MessagesContext';
-import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
+import { useTheme } from '../hooks/useTheme';
+import { useMessages } from '../contexts/MessagesContext';
+import { useNotificationPermissions } from '../hooks/useNotificationPermissions';
 
 // Re-export Message type for local use
 type Message = {

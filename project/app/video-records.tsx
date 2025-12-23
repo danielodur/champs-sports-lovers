@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Video, Play, Pause, Square, RotateCcw, Download, Share, Search, Filter, Calendar, Clock, Eye, Heart, MessageCircle, Star, Upload, Camera, CreditCard as Edit3, Trash2, Settings } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface VideoRecord {
   id: string;

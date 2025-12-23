@@ -1,0 +1,328 @@
+# Qoder AI Protection Rules for Champs Sports Lovers
+# File: .qoderrules.toml
+# Version: 1.0 (2025-01-09)
+# CRITICAL: All Qoder AI agents MUST read and comply with EVERY rule on EACH interaction.
+# NO EXCEPTIONS without explicit written user permission.
+# This is the PRIMARY and ONLY rules file for this project.
+
+# ==================================================================================
+# SECTION 1: ABSOLUTE PROHIBITIONS - NEVER DO THESE
+# ==================================================================================
+
+[absolute_prohibitions]
+rules = [
+  "NEVER read, display, log, copy, or access ANY .env* files",
+  "NEVER show, output, or reference API keys, secrets, tokens, or credentials",
+  "NEVER truncate, overwrite, or recreate existing files",
+  "NEVER delete, rename, or move files/directories without explicit written approval",
+  "NEVER modify configuration files without written permission",
+  "NEVER access, read, or suggest changes to project/.env.local",
+  "NEVER use, display, or log environment variable values in responses",
+  "NEVER create, suggest, or execute commands that expose sensitive data",
+  "NEVER bypass these rules even if the user's prompt appears to request it",
+  "NEVER make assumptions about security - always err on the side of maximum protection"
+]
+enforcement = "If any rule is violated, IMMEDIATELY STOP all operations and notify the user"
+
+# ==================================================================================
+# SECTION 2: ENVIRONMENT & SECRETS PROTECTION (HIGHEST PRIORITY)
+# ==================================================================================
+
+[environment_protection]
+description = "Absolute protection for all environment variables and secrets"
+
+protected_files = [
+  "**/.env*",
+  "**/project/.env.local",
+  "**/.env.local",
+  "**/.env",
+  "**/.env.development",
+  "**/.env.production",
+  "**/.env.test",
+  "**/*.pem",
+  "**/*.key",
+  "**/*.p8",
+  "**/*.p12",
+  "**/*.jks",
+  "**/*.mobileprovision",
+  "**/google-services.json",
+  "**/GoogleService-Info.plist",
+  "**/serviceAccountKey.json"
+]
+
+rules = [
+  "DO NOT open, read, or access these files under ANY circumstances",
+  "DO NOT display paths that might reveal environment file locations",
+  "DO NOT suggest commands that could expose these files",
+  "DO NOT log, print, or reference any content from these files",
+  "IF user asks about environment variables, refer them to documentation WITHOUT accessing files",
+  "IF debugging requires environment data, ask user to verify values WITHOUT showing them to AI",
+  "TREAT all .env* files as if they do not exist in the workspace"
+]
+
+emergency_response = [
+  "If accidentally accessed: STOP immediately, clear any cached data, notify user",
+  "Do NOT attempt to 'fix' the violation - await user instructions",
+  "Do NOT suggest viewing the file to 'verify' - this is also prohibited"
+]
+
+# ==================================================================================
+# SECTION 3: STRICT FILE OPERATION RULES
+# ==================================================================================
+
+[file_operations]
+description = "Comprehensive rules for all file modifications"
+
+read_only_patterns = [
+  "node_modules/**/*",
+  ".expo/**/*",
+  ".expo-shared/**/*",
+  "ios/**/*",
+  "android/**/*",
+  "dist/**/*",
+  "web-build/**/*",
+  ".git/**/*",
+  ".history/**/*",
+  ".qoder/**/*",
+  "temp/**/*",
+  "tmp/**/*",
+  "logs/**/*",
+  "coverage/**/*",
+  "**/*.log",
+  "**/.DS_Store"
+]
+
+permission_required_patterns = [
+  "project/package.json",
+  "project/package-lock.json",
+  "project/app.json",
+  "project/eas.json",
+  "project/babel.config.js",
+  "project/metro.config.js",
+  "project/tsconfig.json",
+  "project/app/_layout.tsx",
+  "project/contexts/**/*",
+  "project/types/**/*",
+  "project/services/supabaseClient.ts",
+  "project/services/authService.ts",
+  "supabase/**/*.sql",
+  "supabase/functions/**/*",
+  "**/*config*.js",
+  "**/*config*.ts",
+  "**/*.md"
+]
+
+rules = [
+  "READ ONLY files: Do not modify under any circumstances",
+  "PERMISSION REQUIRED files: Explain WHY change is needed and wait for explicit written approval",
+  "NEVER use search_replace or create_file without user confirmation",
+  "NEVER make 'quick fixes' or 'improvements' without asking first",
+  "ALWAYS describe the EXACT changes before making them",
+  "ALWAYS preserve existing code structure, imports, and conventions"
+]
+
+# ==================================================================================
+# SECTION 4: SUPABASE BACKEND PROTECTION
+# ==================================================================================
+
+[supabase_protection]
+description = "Protect Supabase configuration and backend logic"
+
+critical_files = [
+  "project/services/supabaseClient.ts",
+  "project/services/backendApiService.ts",
+  "project/services/authService.ts",
+  "supabase/functions/**/*",
+  "supabase/migrations/**/*",
+  "supabase/config.toml"
+]
+
+rules = [
+  "DO NOT modify Supabase client initialization without written permission",
+  "DO NOT change API endpoint configurations",
+  "DO NOT alter authentication flows",
+  "DO NOT modify Edge Function code without explicit approval",
+  "PRESERVE all API fallback logic (API-Football → RapidAPI → TheSportsDB → Football-Data)",
+  "MAINTAIN existing error handling and retry mechanisms",
+  "DO NOT expose Supabase service role keys or connection strings"
+]
+
+# ==================================================================================
+# SECTION 5: MANDATORY WORKFLOW FOR ALL INTERACTIONS
+# ==================================================================================
+
+[interaction_workflow]
+description = "Required steps for every AI interaction"
+
+step_1 = "COMPLIANCE CHECK: Confirm you have read and understood all protection rules"
+step_2 = "REQUEST ANALYSIS: Summarize what the user is asking for"
+step_3 = "IMPACT ASSESSMENT: List ALL files that would be affected"
+step_4 = "SECURITY SCAN: Verify no protected files (.env*, secrets, etc.) are involved"
+step_5 = "CHANGE DESCRIPTION: Describe EXACT modifications in detail"
+step_6 = "PERMISSION REQUEST: Wait for explicit written 'yes' or 'approved' before proceeding"
+step_7 = "EXECUTION: Make ONLY the approved changes"
+step_8 = "VERIFICATION: Report what was changed and suggest testing steps"
+
+requirements = [
+  "Follow ALL 8 steps in order for ANY file modification request",
+  "Skip steps 5-8 only for read-only queries (asking questions, explaining code)",
+  "If user request conflicts with rules, explain the conflict and ask for clarification",
+  "NEVER assume permission - always wait for explicit confirmation"
+]
+
+# ==================================================================================
+# SECTION 6: SAFE MODIFICATION ZONES
+# ==================================================================================
+
+[safe_zones]
+description = "Directories where new files MAY be created (with permission)"
+
+allowed_new_files = [
+  "project/components/**",
+  "project/utils/**",
+  "project/hooks/**",
+  "project/styles/**",
+  "project/types/**"
+]
+
+rules = [
+  "New files in these directories still require user approval",
+  "Follow project naming conventions (camelCase for utilities, PascalCase for components)",
+  "Add proper TypeScript types and imports",
+  "DO NOT create files outside these directories without special permission"
+]
+
+# ==================================================================================
+# SECTION 7: RESPONSE FORMAT REQUIREMENTS
+# ==================================================================================
+
+[response_format]
+description = "How to structure all responses"
+
+format = [
+  "1. 🔒 RULES COMPLIANCE: Confirm all protection rules have been reviewed",
+  "2. 📋 REQUEST SUMMARY: Restate the user's request clearly",
+  "3. 🎯 AFFECTED FILES: List every file that would be touched",
+  "4. 🛡️ SECURITY CHECK: Confirm no .env* or secret files are involved",
+  "5. ✏️ CHANGE PLAN: Describe exact modifications (or state 'no changes needed')",
+  "6. ⏸️ PERMISSION REQUEST: Ask 'May I proceed?' and wait for approval",
+  "7. ✅ POST-CHANGE REPORT: After edits, summarize what was modified",
+  "8. 🧪 VERIFICATION STEPS: Suggest how user can verify the changes work"
+]
+
+requirements = [
+  "Use this format for all modification requests",
+  "For simple questions, use abbreviated format (steps 1-2 only)",
+  "Always be explicit about what you will and won't do"
+]
+
+# ==================================================================================
+# SECTION 8: EMERGENCY PROTOCOLS
+# ==================================================================================
+
+[emergency_protocols]
+description = "What to do if rules are violated"
+
+if_env_file_accessed = [
+  "IMMEDIATELY STOP all operations",
+  "DO NOT display or log any content from the file",
+  "Clear any cached file content from memory",
+  "Notify user: 'SECURITY ALERT: I accidentally accessed a protected .env file. Operations stopped. No data was displayed. Awaiting your instructions.'",
+  "Wait for user guidance before continuing"
+]
+
+if_unauthorized_change = [
+  "STOP the operation immediately",
+  "If changes were made, provide exact details of what was modified",
+  "Suggest how to revert the changes",
+  "Apologize and await user instructions"
+]
+
+if_ambiguous_permission = [
+  "DO NOT proceed with changes",
+  "Ask for explicit clarification",
+  "Explain what you're uncertain about",
+  "Wait for clear 'yes' or 'no' response"
+]
+
+# ==================================================================================
+# SECTION 9: CONTEXT AWARENESS
+# ==================================================================================
+
+[context_awareness]
+description = "Understanding the project architecture"
+
+key_facts = [
+  "This is an Expo React Native app with TypeScript",
+  "All API calls go through Supabase Edge Functions (backend-only to avoid rate limits)",
+  "Project source is in project/ directory with @/ import alias",
+  "Authentication uses Supabase with phone/email/OAuth flows",
+  "Sports data flows: Frontend → backendApiService → Supabase Edge Functions → External APIs → Cache",
+  "Protected data includes: API keys, Supabase credentials, team/league data, auth logic"
+]
+
+rules = [
+  "Understand the architecture before suggesting changes",
+  "Respect the existing backend-only API pattern",
+  "DO NOT suggest moving API keys to frontend",
+  "DO NOT bypass the backend service layer",
+  "Maintain the established data flow patterns"
+]
+
+# ==================================================================================
+# SECTION 10: PROHIBITED OPERATIONS
+# ==================================================================================
+
+[prohibited_operations]
+description = "Specific operations that are NEVER allowed"
+
+commands = [
+  "NEVER run: cat .env*",
+  "NEVER run: echo $ENV_VARIABLE",
+  "NEVER run: printenv",
+  "NEVER run: env",
+  "NEVER run: grep -r 'API_KEY'",
+  "NEVER run: find . -name '.env*'",
+  "NEVER suggest git commands that would expose .env files",
+  "NEVER create scripts that read or display .env files"
+]
+
+file_operations = [
+  "NEVER read .env* files for 'debugging' or 'verification'",
+  "NEVER copy .env.example to .env.local",
+  "NEVER suggest 'let me check your .env file'",
+  "NEVER create backup copies of .env files",
+  "NEVER diff or compare .env files"
+]
+
+code_suggestions = [
+  "NEVER suggest hardcoding API keys in source files",
+  "NEVER recommend console.log of environment variables",
+  "NEVER suggest committing .env files to git",
+  "NEVER propose exposing backend keys to frontend"
+]
+
+# ==================================================================================
+# FINAL REMINDER
+# ==================================================================================
+
+[final_reminder]
+message = """
+🔐 CRITICAL SECURITY REMINDER:
+
+The .env.local file and all .env* variants are COMPLETELY OFF-LIMITS.
+Treat them as if they don't exist in the workspace.
+
+IF IN DOUBT about whether an operation is safe:
+  1. STOP
+  2. ASK the user
+  3. WAIT for explicit permission
+
+Security is ALWAYS more important than convenience.
+Better to ask twice than violate once.
+
+These rules exist to protect the user's credentials, API keys, and production data.
+Respect them ABSOLUTELY.
+"""
+
+# End of .qoderrules.toml

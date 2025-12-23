@@ -68,8 +68,23 @@ export const FCMTokenManager: React.FC = () => {
       }
     };
 
+    // Helper function to validate UUID format
+    const isValidUUID = (str: string): boolean => {
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      return uuidRegex.test(str);
+    };
+
     const saveTokenToDatabase = async (token: string) => {
       try {
+        // Skip database save for test users or non-UUID user IDs
+        if (!isValidUUID(user.id)) {
+          console.log(
+            "⏭️ Skipping FCM token save for test/guest user (non-UUID ID)",
+          );
+          return;
+        }
+
         const { error } = await supabase.from("user_devices").upsert(
           {
             user_id: user.id,
@@ -83,12 +98,29 @@ export const FCMTokenManager: React.FC = () => {
         );
 
         if (error) {
-          console.error("Error saving FCM token to database:", error);
+          // Only log as error if it's not a UUID validation error
+          const errorMessage = error.message || String(error);
+          if (errorMessage.includes("invalid input syntax for type uuid")) {
+            console.log(
+              "⏭️ Skipping FCM token save - invalid UUID format",
+            );
+          } else {
+            console.error("Error saving FCM token to database:", error);
+          }
         } else {
           console.log("✅ FCM token saved to database");
         }
       } catch (error) {
-        console.error("Error saving token:", error);
+        // Check if it's a UUID validation error
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes("invalid input syntax for type uuid")) {
+          console.log(
+            "⏭️ Skipping FCM token save - invalid UUID format",
+          );
+        } else {
+          console.error("Error saving token:", error);
+        }
       }
     };
 

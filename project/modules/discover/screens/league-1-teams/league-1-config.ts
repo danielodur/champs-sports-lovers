@@ -1,0 +1,252 @@
+// Ligue 1 Configuration - 2025/26 Season
+export interface TeamConfig {
+  id: string;
+  name: string;
+  displayName: string;
+  fullName: string;
+  apiName: string;
+  logoKey: string;
+  primaryColor: string;
+  secondaryColor: string;
+  playerCount: number;
+  website: string;
+  sofaTeamId?: number;
+}
+
+export interface LeagueConfig {
+  leagueId: string;
+  leagueName: string;
+  teams: TeamConfig[];
+  apiService: string;
+  imageIndex: string;
+}
+
+export const ligue1Teams: TeamConfig[] = [
+  // Row 1 - 9 teams (2025/26 Season)
+  {
+    id: 'psg',
+    name: 'PSG',
+    displayName: 'PSG',
+    fullName: 'Paris Saint-Germain',
+    apiName: 'Paris Saint Germain',
+    logoKey: 'PSG',
+    primaryColor: '#004170',
+    secondaryColor: '#DA020E',
+    playerCount: 27,
+    website: 'https://www.psg.fr/en',
+  },
+  {
+    id: 'marseille',
+    name: 'Marseille',
+    displayName: 'Marseille',
+    fullName: 'Olympique de Marseille',
+    apiName: 'Marseille',
+    logoKey: 'Marseille',
+    primaryColor: '#00A0E6',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://www.om.fr/en',
+  },
+  {
+    id: 'lens',
+    name: 'Lens',
+    displayName: 'Lens',
+    fullName: 'RC Lens',
+    apiName: 'Lens',
+    logoKey: 'Lens',
+    primaryColor: '#FFD700',
+    secondaryColor: '#C8102E',
+    playerCount: 27,
+    website: 'https://www.rclens.fr/fr',
+  },
+  {
+    id: 'lille',
+    name: 'Lille',
+    displayName: 'Lille',
+    fullName: 'LOSC Lille',
+    apiName: 'Lille',
+    logoKey: 'Lille',
+    primaryColor: '#C8102E',
+    secondaryColor: '#004170',
+    playerCount: 27,
+    website: 'https://www.losc.fr/en',
+  },
+  {
+    id: 'monaco',
+    name: 'Monaco',
+    displayName: 'Monaco',
+    fullName: 'AS Monaco',
+    apiName: 'Monaco',
+    logoKey: 'Monaco',
+    primaryColor: '#DA020E',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://www.asmonaco.com/en/',
+  },
+  {
+    id: 'lyon',
+    name: 'Lyon',
+    displayName: 'Lyon',
+    fullName: 'Olympique Lyonnais',
+    apiName: 'Lyon',
+    logoKey: 'Lyon',
+    primaryColor: '#004170',
+    secondaryColor: '#DA020E',
+    playerCount: 27,
+    website: 'https://ol.fr/fr',
+  },
+  {
+    id: 'strasbourg',
+    name: 'Strasbourg',
+    displayName: 'Strasbourg',
+    fullName: 'RC Strasbourg',
+    apiName: 'Strasbourg',
+    logoKey: 'Strasbourg',
+    primaryColor: '#00A0E6',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://www.rcstrasbourgalsace.fr/en/racing-en/',
+  },
+  {
+    id: 'nice',
+    name: 'Nice',
+    displayName: 'Nice',
+    fullName: 'OGC Nice',
+    apiName: 'Nice',
+    logoKey: 'Nice',
+    primaryColor: '#C8102E',
+    secondaryColor: '#000000',
+    playerCount: 27,
+    website: 'https://www.ogcnice.com/en/',
+  },
+  {
+    id: 'toulouse',
+    name: 'Toulouse',
+    displayName: 'Toulouse',
+    fullName: 'Toulouse FC',
+    apiName: 'Toulouse',
+    logoKey: 'Toulouse',
+    primaryColor: '#6A2C91',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://www.toulousefc.com/',
+  },
+
+  // Row 2 - 9 teams (2025/26 Season)
+  {
+    id: 'rennes',
+    name: 'Rennes',
+    displayName: 'Rennes',
+    fullName: 'Stade Rennais FC',
+    apiName: 'Rennes',
+    logoKey: 'Rennes',
+    primaryColor: '#C8102E',
+    secondaryColor: '#000000',
+    playerCount: 27,
+    website: 'https://www.staderennais.com/en',
+  },
+  {
+    id: 'paris-fc',
+    name: 'Paris FC',
+    displayName: 'Paris FC',
+    fullName: 'Paris Football Club',
+    apiName: 'Paris FC',
+    logoKey: 'Paris FC',
+    primaryColor: '#004170',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://parisfc.fr/',
+  },
+  {
+    id: 'le-havre',
+    name: 'Le Havre',
+    displayName: 'Le Havre',
+    fullName: 'Le Havre AC',
+    apiName: 'Le Havre',
+    logoKey: 'Le Havre',
+    primaryColor: '#00A0E6',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://billetterie.hac.football/',
+  },
+  {
+    id: 'brest',
+    name: 'Brest',
+    displayName: 'Brest',
+    fullName: 'Stade Brestois 29',
+    apiName: 'Brest',
+    logoKey: 'Brest',
+    primaryColor: '#C8102E',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://www.sb29.bzh/',
+  },
+  {
+    id: 'angers',
+    name: 'Angers',
+    displayName: 'Angers',
+    fullName: 'Angers SCO',
+    apiName: 'Angers',
+    logoKey: 'Angers',
+    primaryColor: '#000000',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://angers-sco.fr/',
+  },
+  {
+    id: 'nantes',
+    name: 'Nantes',
+    displayName: 'Nantes',
+    fullName: 'FC Nantes',
+    apiName: 'Nantes',
+    logoKey: 'Nantes',
+    primaryColor: '#FFD700',
+    secondaryColor: '#00B04F',
+    playerCount: 27,
+    website: 'https://www.fcnantes.com/',
+  },
+  {
+    id: 'lorient',
+    name: 'Lorient',
+    displayName: 'Lorient',
+    fullName: 'FC Lorient',
+    apiName: 'Lorient',
+    logoKey: 'Lorient',
+    primaryColor: '#FF6900',
+    secondaryColor: '#000000',
+    playerCount: 27,
+    website: 'https://www.fclorient.bzh/',
+  },
+  {
+    id: 'metz',
+    name: 'Metz',
+    displayName: 'Metz',
+    fullName: 'FC Metz',
+    apiName: 'Metz',
+    logoKey: 'Metz',
+    primaryColor: '#8B0000',
+    secondaryColor: '#FFD700',
+    playerCount: 27,
+    website: 'https://www.fcmetz.com/accueil',
+  },
+  {
+    id: 'auxerre',
+    name: 'Auxerre',
+    displayName: 'Auxerre',
+    fullName: 'AJ Auxerre',
+    apiName: 'Auxerre',
+    logoKey: 'Auxerre',
+    primaryColor: '#00A0E6',
+    secondaryColor: '#FFFFFF',
+    playerCount: 27,
+    website: 'https://www.aja.fr/',
+  },
+];
+
+export const ligue1Config: LeagueConfig = {
+  leagueId: 'ligue-1',
+  leagueName: 'Ligue 1',
+  teams: ligue1Teams,
+  apiService: 'league1ApiService',
+  imageIndex: '../../../assets/images/ligue-1/index',
+};

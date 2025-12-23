@@ -3,15 +3,16 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Dimension
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Volume2, VolumeX, RotateCcw, Smartphone, ChevronRight } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { useMatchSettings } from '@/contexts/MatchSettingsContext';
-import { testSound, getAvailableSounds } from '@/utils/SoundManager';
+import { useTheme } from '../hooks/useTheme';
+import { useMatchSettings } from '../contexts/MatchSettingsContext';
+import { testSound, getAvailableSounds } from '../utils/SoundManager';
 
 const { width } = Dimensions.get('window');
 
 export default function MatchSettingsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const isDarkMode = theme.colors.background === '#2A2A2A';
   const { settings, updateSetting, showGoalNotification } = useMatchSettings();
 
   // Tab states
@@ -19,8 +20,6 @@ export default function MatchSettingsScreen() {
   const tabs = [
     { id: 'football', label: 'Football' },
     { id: 'basketball', label: 'Basketball' },
-    { id: 'rugby', label: 'Rugby' },
-    { id: 'boxing', label: 'Boxing' },
   ];
 
   // Sport-specific data
@@ -281,7 +280,7 @@ export default function MatchSettingsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme.colors.backgroundSecondary }]}>
         <TouchableOpacity 
@@ -295,29 +294,34 @@ export default function MatchSettingsScreen() {
         <View style={styles.headerRight} />
       </View>
 
+      {/* Header Separator - under title */}
+      <View style={[styles.headerSeparator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }]} />
+
       {/* Tabs */}
       <View style={[styles.tabContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
-            style={[
-              styles.tab,
-              activeTab === tab.id && { borderBottomColor: '#EF5350' }
-            ]}
+            style={styles.tab}
             onPress={() => setActiveTab(tab.id)}
             activeOpacity={0.7}
           >
             <Text style={[
               styles.tabText,
               {
-                color: activeTab === tab.id ? '#EF5350' : theme.colors.textSecondary
+                color: activeTab === tab.id ? '#EF5350' : theme.colors.textSecondary,
+                fontWeight: activeTab === tab.id ? 'bold' : 'normal'
               }
             ]}>
               {tab.label}
             </Text>
+            {activeTab === tab.id && <View style={styles.tabIndicator} />}
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Separator - directly under tabs/indicator */}
+      <View style={[styles.tabSeparator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }]} />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Notification */}
@@ -337,6 +341,9 @@ export default function MatchSettingsScreen() {
           )}
         </View>
 
+        {/* Major Separator */}
+        <View style={[styles.majorSeparator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }]} />
+
         {/* Competition Range */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
@@ -347,6 +354,9 @@ export default function MatchSettingsScreen() {
             {renderCompetitionRangeOption('following', sportData[activeTab as keyof typeof sportData].competitionRange.following)}
           </View>
         </View>
+
+        {/* Major Separator */}
+        <View style={[styles.majorSeparator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }]} />
 
         {/* Sound Notification */}
         <View style={styles.section}>
@@ -361,24 +371,28 @@ export default function MatchSettingsScreen() {
           )}
           {activeTab === 'football' && (
             <>
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Home Team Sound',
                 homeTeamSound,
                 'home',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Away Team Sound',
                 awayTeamSound,
                 'away',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Goal Sound',
                 cancelGoalSound,
                 'cancel',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSettingRow(
                 'Red Card Sound',
                 redCardSound,
@@ -389,24 +403,28 @@ export default function MatchSettingsScreen() {
           )}
           {activeTab === 'basketball' && (
             <>
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Home Team Sound',
                 homeTeamSound,
                 'home',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Away Team Sound',
                 awayTeamSound,
                 'away',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Score Sound',
                 cancelGoalSound,
                 'cancel',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Buzzer Sound',
                 'Default',
@@ -417,24 +435,28 @@ export default function MatchSettingsScreen() {
           )}
           {activeTab === 'rugby' && (
             <>
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Home Team Sound',
                 homeTeamSound,
                 'home',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Away Team Sound',
                 awayTeamSound,
                 'away',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Try Sound',
                 cancelGoalSound,
                 'cancel',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Whistle Sound',
                 'Default',
@@ -445,24 +467,28 @@ export default function MatchSettingsScreen() {
           )}
           {activeTab === 'boxing' && (
             <>
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Round Bell Sound',
                 homeTeamSound,
                 'home',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Knockout Sound',
                 awayTeamSound,
                 'away',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Decision Sound',
                 cancelGoalSound,
                 'cancel',
                 !goalNotification || !soundNotification
               )}
+              <View style={[styles.minorSeparator, { backgroundColor: isDarkMode ? '#3A3A3C' : '#D1D1D6' }]} />
               {renderSoundRow(
                 'Entrance Sound',
                 'Default',
@@ -472,6 +498,9 @@ export default function MatchSettingsScreen() {
             </>
           )}
         </View>
+
+        {/* Major Separator */}
+        <View style={[styles.majorSeparator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }]} />
 
         {/* Vibration Switch */}
         <View style={styles.section}>
@@ -494,6 +523,9 @@ export default function MatchSettingsScreen() {
             <ChevronRight size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
+
+        {/* Major Separator */}
+        <View style={[styles.majorSeparator, { backgroundColor: isDarkMode ? '#2C2C2E' : '#E5E5EA' }]} />
 
         {/* Animation */}
         <View style={styles.section}>
@@ -520,6 +552,7 @@ export default function MatchSettingsScreen() {
           <View style={[
             styles.samsungMockup,
             {
+              backgroundColor: theme.colors.backgroundSecondary,
               opacity: !goalNotification || !goalAnimation ? 0.3 : 1
             }
           ]}>
@@ -529,7 +562,7 @@ export default function MatchSettingsScreen() {
               <View style={styles.statusBar}>
                 <Text style={styles.statusTime}>15:47</Text>
                 <View style={styles.statusRight}>
-                  <Text style={styles.statusText}>SportsWee</Text>
+                  <Text style={styles.statusText}>Champs Sports</Text>
                   <View style={styles.statusIcons}>
                     <View style={styles.signalIcon} />
                     <View style={styles.wifiIcon} />
@@ -584,7 +617,13 @@ export default function MatchSettingsScreen() {
                       <Text style={styles.matchTime}>18:45</Text>
                       <View style={styles.matchTeams}>
                         <View style={styles.teamRow}>
-                          <Text style={styles.teamName}>URA FC</Text>
+                          {goalAnimation ? (
+                            <View style={styles.teamNameWrapper}>
+                              <Text style={styles.teamNameScored}>URA FC</Text>
+                            </View>
+                          ) : (
+                            <Text style={styles.teamName}>URA FC</Text>
+                          )}
                           <Text style={styles.matchScore}>1-1</Text>
                           <Text style={styles.teamName}>Villa SC</Text>
                         </View>
@@ -712,44 +751,55 @@ export default function MatchSettingsScreen() {
               {/* Sport Notification Overlay - Only show when animation is enabled */}
               {goalNotification && goalAnimation && (
                 <View style={styles.goalNotification}>
-                  <View style={styles.goalContent}>
-                    <View style={styles.goalHeader}>
-                      <Text style={styles.goalMinute}>
-                        {activeTab === 'football' ? '23\'' :
-                         activeTab === 'basketball' ? 'Q3 5:20' :
-                         activeTab === 'rugby' ? '35\'' : 'R3 2:10'}
-                      </Text>
-                      <View style={styles.goalIcon}>
-                        <Text style={styles.goalIconText}>
-                          {activeTab === 'football' ? '⚽' :
-                           activeTab === 'basketball' ? '🏀' :
-                           activeTab === 'rugby' ? '🏉' : '🥊'}
+                  {/* Left Section: Time and Event (vertical layout) */}
+                  <View style={styles.goalLeftSection}>
+                    <Text style={styles.goalMinute}>
+                      {activeTab === 'football' ? '23\'' :
+                       activeTab === 'basketball' ? 'Q3 5:20' :
+                       activeTab === 'rugby' ? '35\'' : 'R3 2:10'}
+                    </Text>
+                    <Text style={styles.goalEventText}>
+                      {activeTab === 'football' ? 'GOAL' : 
+                       activeTab === 'basketball' ? 'SCORE' :
+                       activeTab === 'rugby' ? 'TRY' : 'KNOCKOUT'}
+                    </Text>
+                  </View>
+
+                  {/* Center Section: Teams (vertical layout) */}
+                  <View style={styles.goalCenterSection}>
+                    <Text style={styles.goalTeams}>
+                      {activeTab === 'football' ? 'URA FC' :
+                       activeTab === 'basketball' ? 'Nets' :
+                       activeTab === 'rugby' ? 'France' : 'Canelo'}
+                    </Text>
+                    <Text style={styles.goalVs}>vs</Text>
+                    <Text style={styles.goalTeams}>
+                      {activeTab === 'football' ? 'Villa SC' :
+                       activeTab === 'basketball' ? 'Knicks' :
+                       activeTab === 'rugby' ? 'Italy' : 'GGG'}
+                    </Text>
+                  </View>
+
+                  {/* Right Section: Score (vertical layout with icon) */}
+                  <View style={styles.goalRightSection}>
+                    <Text style={styles.goalScoreLabel}>SCORE</Text>
+                    <View style={styles.goalScoreRow}>
+                      <View style={styles.goalScoreValues}>
+                        <Text style={[styles.goalScoreValue, styles.goalScoreValueScored]}>
+                          {activeTab === 'football' ? '1' :
+                           activeTab === 'basketball' ? '76' :
+                           activeTab === 'rugby' ? '15' : 'KO'}
+                        </Text>
+                        <Text style={styles.goalScoreValue}>
+                          {activeTab === 'football' ? '1' :
+                           activeTab === 'basketball' ? '82' :
+                           activeTab === 'rugby' ? '8' : 'R3'}
                         </Text>
                       </View>
-                    </View>
-                    <View style={styles.goalMatch}>
-                      <Text style={styles.goalTeams}>
-                        {activeTab === 'football' ? 'URA FC' :
-                         activeTab === 'basketball' ? 'Nets' :
-                         activeTab === 'rugby' ? 'France' : 'Canelo'}
-                      </Text>
-                      <Text style={styles.goalVs}>vs</Text>
-                      <Text style={styles.goalTeams}>
-                        {activeTab === 'football' ? 'Villa SC' :
-                         activeTab === 'basketball' ? 'Knicks' :
-                         activeTab === 'rugby' ? 'Italy' : 'GGG'}
-                      </Text>
-                    </View>
-                    <View style={styles.goalScoreUpdate}>
-                      <Text style={styles.goalText}>
-                        {activeTab === 'football' ? 'GOAL!' : 
-                         activeTab === 'basketball' ? 'SCORE!' :
-                         activeTab === 'rugby' ? 'TRY!' : 'KNOCKOUT!'}
-                      </Text>
-                      <Text style={styles.goalNewScore}>
-                        {activeTab === 'football' ? '1 - 1' :
-                         activeTab === 'basketball' ? '76 - 82' :
-                         activeTab === 'rugby' ? '15 - 8' : 'KO R3'}
+                      <Text style={styles.goalIconText}>
+                        {activeTab === 'football' ? '⚽' :
+                         activeTab === 'basketball' ? '🏀' :
+                         activeTab === 'rugby' ? '🏉' : '🥊'}
                       </Text>
                     </View>
                   </View>
@@ -758,7 +808,7 @@ export default function MatchSettingsScreen() {
             </View>
 
             {/* Competition Range Info */}
-            <View style={styles.mockupInfo}>
+            <View style={[styles.mockupInfo, { backgroundColor: theme.colors.backgroundSecondary }]}>
               <Text style={[styles.mockupInfoText, { color: theme.colors.text }]}>
                 Animation Preview: {goalAnimation ? 'ON' : 'OFF'}
               </Text>
@@ -851,24 +901,47 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
   },
   tab: {
-    flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
   tabText: {
     fontSize: 16,
     fontFamily: 'Inter-Medium',
+  },
+  tabIndicator: {
+    width: 24,
+    height: 3,
+    backgroundColor: '#EF5350',
+    borderRadius: 2,
+    marginTop: 4,
+  },
+  headerSeparator: {
+    height: 1,
+  },
+  tabSeparator: {
+    height: 1,
+    marginTop: 0,
   },
   content: {
     flex: 1,
     padding: 16,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  majorSeparator: {
+    height: 1,
+    marginHorizontal: -16,
+    marginBottom: 16,
+  },
+  minorSeparator: {
+    height: 0.5,
+    marginHorizontal: -16,
+    marginVertical: 4,
   },
   sectionTitle: {
     fontSize: 18,
@@ -1049,7 +1122,7 @@ const styles = StyleSheet.create({
   samsungMockup: {
     paddingVertical: 8,
     paddingHorizontal: 0,
-    backgroundColor: '#1C1C1E',
+    // backgroundColor will be set dynamically via theme
     marginHorizontal: -16,
     marginTop: -10,
   },
@@ -1187,6 +1260,7 @@ const styles = StyleSheet.create({
   },
   matchTeams: {
     alignItems: 'center',
+    width: '100%', // Ensure full width for consistent alignment
   },
   teamRow: {
     flexDirection: 'row',
@@ -1194,6 +1268,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     marginBottom: 2,
+    paddingHorizontal: 0, // No extra horizontal padding
   },
   teamName: {
     fontSize: 12,
@@ -1222,70 +1297,109 @@ const styles = StyleSheet.create({
     right: 15,
     backgroundColor: '#EF5350',
     borderRadius: 6,
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 8,
   },
-  goalContent: {
+  goalLeftSection: {
     alignItems: 'center',
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
+    marginRight: 12,
   },
   goalMinute: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: 'bold',
-    marginRight: 8,
+    marginBottom: 2,
   },
-  goalIcon: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
+  goalEventText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  goalCenterSection: {
+    flex: 1,
     alignItems: 'center',
-  },
-  goalIconText: {
-    fontSize: 12,
-  },
-  goalMatch: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
   },
   goalTeams: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   goalVs: {
     color: '#FFFFFF',
-    fontSize: 10,
-    marginHorizontal: 8,
+    fontSize: 8,
+    fontWeight: '500',
+    opacity: 0.8,
+    marginVertical: 1,
   },
-  goalScoreUpdate: {
+  goalRightSection: {
     alignItems: 'center',
+    marginLeft: 12,
   },
-  goalText: {
+  goalScoreLabel: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    fontSize: 9,
+    fontWeight: '500',
+    opacity: 0.9,
     marginBottom: 2,
   },
-  goalNewScore: {
+  goalScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  goalScoreValues: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  goalScoreValue: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    lineHeight: 16,
+  },
+  goalScoreValueScored: {
+    color: '#B71C1C', // Darker red to indicate home team scored
+  },
+  goalIconText: {
+    fontSize: 12,
+  },
+  teamNameWrapper: {
+    flex: 1, // Match the flex of other team names for proper spacing
+    alignItems: 'center',
+    justifyContent: 'center',
+    // Ensure wrapper takes exact same space as Text component
+    minWidth: 0, // Allow flex to shrink if needed
+    maxWidth: '100%', // Don't exceed container
+  },
+  teamNameScored: {
+    backgroundColor: '#EF5350',
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+    paddingHorizontal: 0, // No horizontal padding - background fits text exactly
+    paddingVertical: 2, // Keep vertical padding for readability
+    borderRadius: 2,
+    overflow: 'hidden',
+    // Ensure text doesn't add extra font padding
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    textAlign: 'center', // Center text within its container
   },
   mockupInfo: {
     marginTop: 15,
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    // backgroundColor will be set dynamically via theme
   },
   mockupInfoText: {
     fontSize: 14,

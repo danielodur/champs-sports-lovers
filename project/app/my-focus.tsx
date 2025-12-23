@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronLeft, Edit, Calendar, MapPin, User, Phone, Mail, Briefcase, Camera, Edit3, X, Check, ChevronRight, Lock, Navigation, Search, Crown, Palette, Hash } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-import useAuth from '@/hooks/useAuth';
-import { getCurrentUsername, getCurrentProfilePicture } from '@/utils/userDataHelpers';
+import useAuth from '../hooks/useAuth';
+import { getCurrentUsername, getCurrentProfilePicture } from '../utils/userDataHelpers';
 
 export default function MyFocusScreen() {
   const router = useRouter();

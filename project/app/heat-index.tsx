@@ -30,7 +30,7 @@ import {
   MessageCircle,
   Share
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface HeatItem {
   id: string;

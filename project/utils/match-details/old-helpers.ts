@@ -1,9 +1,10 @@
-import { PlayerData } from "@/services/lineupService";
+import { PlayerData } from "../../services/lineupService";
+import type { MatchStats } from "../../types/match-details/match-details";
 
 // ✅ NEW: Generate realistic Extra Time score (after 90 minutes)
 export const generateRealisticExtraTimeScore = (
   fullTimeScore: string,
-  matchId: string
+  matchId: string,
 ): string => {
   try {
     const [homeGoals, awayGoals] = fullTimeScore
@@ -26,7 +27,7 @@ export const generateRealisticExtraTimeScore = (
     const etAwayGoals = awayGoals + extraAwayGoals;
 
     console.log(
-      `🏁 GENERATED ET SCORE: ${etHomeGoals}-${etAwayGoals} (added ${extraHomeGoals}-${extraAwayGoals} in ET)`
+      `🏁 GENERATED ET SCORE: ${etHomeGoals}-${etAwayGoals} (added ${extraHomeGoals}-${extraAwayGoals} in ET)`,
     );
     return `${etHomeGoals}-${etAwayGoals}`;
   } catch (error) {
@@ -63,7 +64,7 @@ export const generateRealisticPenaltyScore = (matchId: string): string => {
 // Generate realistic half-time scores based on final score
 export const generateRealisticHalfTimeScore = (
   finalScore: string,
-  matchId: string
+  matchId: string,
 ) => {
   try {
     console.log(`🏁 Generating HT score for final score: "${finalScore}"`);
@@ -128,7 +129,7 @@ export const calculateInitialTeamRatings = (
   homeTeam: string,
   awayTeam: string,
   league: string,
-  matchId?: string
+  matchId?: string,
 ) => {
   // Base ratings considering team reputation and league quality
   const getBaseRating = (teamName: string, league: string) => {
@@ -193,7 +194,7 @@ export const calculateInitialTeamRatings = (
 
   let adjustedHome = Math.max(
     25,
-    Math.min(85, homeRating + homeAdvantage + variance)
+    Math.min(85, homeRating + homeAdvantage + variance),
   );
   let adjustedAway = Math.max(25, Math.min(85, awayRating + variance));
 
@@ -497,7 +498,7 @@ export const generateAwayTeamPlayers = () => {
 export const generateRealisticPlayerNames = (
   teamName: string,
   league: string,
-  matchId: string
+  matchId: string,
 ): string[] => {
   const ugandanNames = [
     "Okello",
@@ -524,7 +525,7 @@ export const generateRealisticPlayerNames = (
 
   const seed = teamName.length + matchId.length;
   const shuffledNames = [...ugandanNames].sort(
-    () => Math.sin(seed) * 10000 - Math.floor(Math.sin(seed) * 10000)
+    () => Math.sin(seed) * 10000 - Math.floor(Math.sin(seed) * 10000),
   );
 
   return shuffledNames.slice(0, 15);
@@ -532,13 +533,13 @@ export const generateRealisticPlayerNames = (
 
 export const generateRealHomeLineupPlayers = (
   teamName: string,
-  matchId: string
+  matchId: string,
 ): PlayerData[] => {
   // Use team name to generate realistic players
   const teamBasedNames = generateRealisticPlayerNames(
     teamName,
     "Ugandan Premier League",
-    matchId
+    matchId,
   );
   const homeEvents = generateMatchEvents(matchId, "home");
 
@@ -680,13 +681,13 @@ export const generateRealHomeLineupPlayers = (
 
 export const generateRealAwayLineupPlayers = (
   teamName: string,
-  matchId: string
+  matchId: string,
 ): PlayerData[] => {
   // Use team name to generate realistic players
   const teamBasedNames = generateRealisticPlayerNames(
     teamName,
     "Ugandan Premier League",
-    matchId + "away"
+    matchId + "away",
   );
   const awayEvents = generateMatchEvents(matchId, "away");
 
@@ -828,12 +829,12 @@ export const generateRealAwayLineupPlayers = (
 
 export const generateRealSubstitutePlayers = (
   teamName: string,
-  matchId: string
+  matchId: string,
 ): PlayerData[] => {
   const subNames = generateRealisticPlayerNames(
     `${teamName} Subs`,
     "Ugandan Premier League",
-    matchId + "subs"
+    matchId + "subs",
   );
 
   return [
@@ -965,7 +966,7 @@ export const generateMatchEvents = (matchId: string, team: "home" | "away") => {
 export const generateComprehensivePlayerStats = (
   team: "home" | "away",
   matchId: string,
-  matchStatus?: string
+  matchStatus?: string,
 ) => {
   const players =
     team === "home" ? generateHomeTeamPlayers() : generateAwayTeamPlayers();
@@ -1027,18 +1028,18 @@ export const generateComprehensivePlayerStats = (
     const shots = isForward
       ? Math.floor(random() * 6) + 1
       : isMidfielder
-      ? Math.floor(random() * 4)
-      : Math.floor(random() * 2);
+        ? Math.floor(random() * 4)
+        : Math.floor(random() * 2);
     const shotsOnTarget = Math.floor(shots * (0.3 + random() * 0.4)); // 30-70% accuracy
 
     // Passing stats
     const totalPasses = isGK
       ? Math.floor(random() * 30) + 20
       : isDefender
-      ? Math.floor(random() * 60) + 40
-      : isMidfielder
-      ? Math.floor(random() * 80) + 60
-      : Math.floor(random() * 40) + 20;
+        ? Math.floor(random() * 60) + 40
+        : isMidfielder
+          ? Math.floor(random() * 80) + 60
+          : Math.floor(random() * 40) + 20;
     const passAccuracy = 0.75 + random() * 0.2; // 75-95% accuracy
     const successfulPasses = Math.floor(totalPasses * passAccuracy);
 
@@ -1046,21 +1047,21 @@ export const generateComprehensivePlayerStats = (
     const keyPasses = isMidfielder
       ? Math.floor(random() * 5) + 1
       : isForward
-      ? Math.floor(random() * 3)
-      : Math.floor(random() * 2);
+        ? Math.floor(random() * 3)
+        : Math.floor(random() * 2);
 
     // Defensive stats
     const tackles = isDefender
       ? Math.floor(random() * 6) + 2
       : isMidfielder
-      ? Math.floor(random() * 4) + 1
-      : Math.floor(random() * 2);
+        ? Math.floor(random() * 4) + 1
+        : Math.floor(random() * 2);
 
     const interceptions = isDefender
       ? Math.floor(random() * 5) + 1
       : isMidfielder
-      ? Math.floor(random() * 3)
-      : Math.floor(random() * 1);
+        ? Math.floor(random() * 3)
+        : Math.floor(random() * 1);
 
     // Cards
     const yellowCards = random() < 0.25 ? 1 : 0;

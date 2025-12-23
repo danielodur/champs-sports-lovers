@@ -15,8 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Gift, Star, Trophy, Coins, Calendar, Clock, Users, MessageCircle, Eye, Share, CircleCheck as CheckCircle, Target, Zap, Award, TrendingUp, BarChart3, Shield, Crown, Wallet, ArrowRight, Plus, Sparkles, Timer, Play, Settings, Bell, BellOff } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import useAuth from '@/hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
+import useAuth from '../hooks/useAuth';
 
 // Generate professional realistic avatar using Dicebear adventurer style
 const generateProfessionalAvatar = (seed: string) => {

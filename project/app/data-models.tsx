@@ -30,7 +30,7 @@ import {
   Pause,
   Info
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface DataModel {
   id: string;

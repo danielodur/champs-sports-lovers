@@ -12,8 +12,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Bell, X, MessageCircle, Star, Calendar, Clock, CircleAlert as AlertCircle } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
+import { useTheme } from '../hooks/useTheme';
+import { useNotificationPermissions } from '../hooks/useNotificationPermissions';
 
 interface Notification {
   id: string;

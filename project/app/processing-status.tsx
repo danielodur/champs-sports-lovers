@@ -21,7 +21,7 @@ import {
   Calendar,
   MessageSquare
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface FeedbackRecord {
   id: string;

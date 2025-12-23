@@ -17,10 +17,17 @@
       "apiFootballHost": "api-football-v1.p.rapidapi.com",
       "newsDataApiKey": "EXPO_PUBLIC_NEWSDATA.IO_API_KEY",
       "guardianApiKey": "EXPO_PUBLIC_GUARDIAN_API_KEY",
+      "newsApiOrgKey": "EXPO_PUBLIC_NEWS_API_ORG_KEY",
+      "worldNewsApiKey": "EXPO_PUBLIC_WORLD_NEWS_API_ORG_KEY",
       "gNewsApiKey": "EXPO_PUBLIC_GNEWS_API_KEY",
       "mediaStackApiKey": "EXPO_PUBLIC_MEDIASTACK_API_KEY",
       "footballDataApiKey": "EXPO_PUBLIC_FOOTBALL_DATA.ORG_API",
+      "apiFootballKey": "EXPO_PUBLIC_API_FOOTBALL_KEY",
       "sportRadarApiKey": "EXPO_PUBLIC_SPORTRADAR_API_KEY",
+      "theSportsDbApiKey": "EXPO_PUBLIC_THE_SPORTSDB_API_KEY",
+      "apiSportKey": "EXPO_PUBLIC_API_SPORT_KEY",
+      "openWeatherApiKey": "EXPO_PUBLIC_OPEN_WEATHER_API_KEY",
+
       "environment": "development",
       "enableRealData": true,
       "useMockData": false,
@@ -28,7 +35,7 @@
       "cacheEnabled": true,
       "mockFallbackEnabled": false,
       "supabaseUrl": "EXPO_PUBLIC_SUPABASE_URL",
-      "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "supabaseAnonKey": "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
       "supabaseRedirectUrl": "EXPO_PUBLIC_SUPABASE_REDIRECT_URL",
       "passwordResetWebsite": "EXPO_PUBLIC_PASSWORD_RESET_WEBSITE",
       "router": {
@@ -40,7 +47,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.champs.app",
+      "bundleIdentifier": "com.briandodur.champsdev",
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to take profile pictures for your account.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for your profile picture.",
@@ -55,7 +62,7 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.champs.app",
+      "package": "com.briandodur.champsdev",
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -70,7 +77,6 @@
     "sdkVersion": "53.0.0",
     "platforms": ["ios", "android", "web"],
     "scheme": "champs",
-    "privacy": "public",
     "githubUrl": "https://github.com/yourusername/champs",
     "plugins": [
       "expo-router",

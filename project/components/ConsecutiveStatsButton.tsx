@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,17 +8,22 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
-} from 'react-native';
-import { Globe, X } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { consecutiveMatchesService, type ConsecutiveTeam } from '@/services/consecutiveMatchesService';
+} from "react-native";
+import { Globe, X } from "lucide-react-native";
+import { useTheme } from "../hooks/useTheme";
+import {
+  consecutiveMatchesService,
+  type ConsecutiveTeam,
+} from "../services/consecutiveMatchesService";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export default function ConsecutiveStatsButton() {
   const theme = useTheme();
   const [showModal, setShowModal] = useState(false);
-  const [consecutiveTeams, setConsecutiveTeams] = useState<ConsecutiveTeam[]>([]);
+  const [consecutiveTeams, setConsecutiveTeams] = useState<ConsecutiveTeam[]>(
+    [],
+  );
 
   const handlePress = async () => {
     // Get data instantly from cache or use fallback data
@@ -27,33 +32,33 @@ export default function ConsecutiveStatsButton() {
       setConsecutiveTeams(teams);
       setShowModal(true);
     } catch (error) {
-      console.error('Failed to fetch consecutive teams:', error);
+      console.error("Failed to fetch consecutive teams:", error);
       // Use fallback data for instant display
       setConsecutiveTeams([
         {
-          id: 'fallback-win-1',
-          name: 'Real Madrid',
+          id: "fallback-win-1",
+          name: "Real Madrid",
           streak: 6,
-          type: 'win',
+          type: "win",
           recentMatches: [],
-          league: 'La Liga'
+          league: "La Liga",
         },
         {
-          id: 'fallback-win-2',
-          name: 'Manchester City',
+          id: "fallback-win-2",
+          name: "Manchester City",
           streak: 5,
-          type: 'win',
+          type: "win",
           recentMatches: [],
-          league: 'Premier League'
+          league: "Premier League",
         },
         {
-          id: 'fallback-loss-1',
-          name: 'Chelsea',
+          id: "fallback-loss-1",
+          name: "Chelsea",
           streak: 4,
-          type: 'loss',
+          type: "loss",
           recentMatches: [],
-          league: 'Premier League'
-        }
+          league: "Premier League",
+        },
       ]);
       setShowModal(true);
     }
@@ -66,8 +71,8 @@ export default function ConsecutiveStatsButton() {
         styles.teamItem,
         {
           backgroundColor: theme.colors.backgroundSecondary,
-          borderLeftColor: team.type === 'win' ? '#FF4444' : '#4CAF50'
-        }
+          borderLeftColor: team.type === "win" ? "#FF4444" : "#4CAF50",
+        },
       ]}
     >
       <View style={styles.teamHeader}>
@@ -75,21 +80,23 @@ export default function ConsecutiveStatsButton() {
           style={[
             styles.teamName,
             {
-              color: team.type === 'win' ? '#FF4444' : '#4CAF50'
-            }
+              color: team.type === "win" ? "#FF4444" : "#4CAF50",
+            },
           ]}
         >
           {team.name}
         </Text>
-        <Text style={[styles.teamLeague, { color: theme.colors.textSecondary }]}>
+        <Text
+          style={[styles.teamLeague, { color: theme.colors.textSecondary }]}
+        >
           {team.league}
         </Text>
       </View>
-      
+
       <Text style={[styles.streakText, { color: theme.colors.text }]}>
-        {team.streak} consecutive {team.type === 'win' ? 'wins' : 'losses'}
+        {team.streak} consecutive {team.type === "win" ? "wins" : "losses"}
       </Text>
-      
+
       {team.recentMatches.slice(0, 2).map((match, index) => (
         <Text
           key={`${team.id}-match-${index}`}
@@ -106,7 +113,7 @@ export default function ConsecutiveStatsButton() {
       {/* Red Half-Circle Button from Edge - Like Chinese App */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.halfCircleButton, { backgroundColor: '#FF4444' }]}
+          style={[styles.halfCircleButton, { backgroundColor: "#FF4444" }]}
           onPress={handlePress}
           activeOpacity={0.8}
         >
@@ -122,49 +129,72 @@ export default function ConsecutiveStatsButton() {
         onRequestClose={() => setShowModal(false)}
       >
         <View style={styles.modalContainer}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
+          <View
+            style={[
+              styles.modalContent,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
                 Consecutive Wins & Losses
               </Text>
               <TouchableOpacity
                 onPress={() => setShowModal(false)}
-                style={[styles.closeButton, { backgroundColor: theme.colors.backgroundSecondary }]}
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: theme.colors.backgroundSecondary },
+                ]}
               >
                 <X size={20} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.modalScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               {consecutiveTeams.length > 0 ? (
                 <>
                   {/* Wins Section */}
-                  {consecutiveTeams.filter(t => t.type === 'win').length > 0 && (
+                  {consecutiveTeams.filter((t) => t.type === "win").length >
+                    0 && (
                     <>
-                      <Text style={[styles.sectionTitle, { color: '#FF4444' }]}>
+                      <Text style={[styles.sectionTitle, { color: "#FF4444" }]}>
                         🔥 Consecutive Wins
                       </Text>
                       {consecutiveTeams
-                        .filter(t => t.type === 'win')
+                        .filter((t) => t.type === "win")
                         .map(renderTeamItem)}
                     </>
                   )}
 
                   {/* Losses Section */}
-                  {consecutiveTeams.filter(t => t.type === 'loss').length > 0 && (
+                  {consecutiveTeams.filter((t) => t.type === "loss").length >
+                    0 && (
                     <>
-                      <Text style={[styles.sectionTitle, { color: '#4CAF50', marginTop: 20 }]}>
+                      <Text
+                        style={[
+                          styles.sectionTitle,
+                          { color: "#4CAF50", marginTop: 20 },
+                        ]}
+                      >
                         📉 Consecutive Losses
                       </Text>
                       {consecutiveTeams
-                        .filter(t => t.type === 'loss')
+                        .filter((t) => t.type === "loss")
                         .map(renderTeamItem)}
                     </>
                   )}
                 </>
               ) : (
                 <View style={styles.emptyContainer}>
-                  <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
                     No significant consecutive streaks found
                   </Text>
                 </View>
@@ -179,10 +209,11 @@ export default function ConsecutiveStatsButton() {
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    position: 'absolute',
-    bottom: 100, // Above bottom tab bar  
+    position: "absolute",
+    bottom: 120, // Above bottom tab bar, more space from scroll area
     right: 0,
-    zIndex: 1000,
+    zIndex: 100, // Lower z-index to not interfere with scrolling
+    pointerEvents: "box-none", // Allow touches to pass through container
   },
   halfCircleButton: {
     width: 50,
@@ -191,38 +222,39 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 25,
     borderTopRightRadius: 0,
     borderBottomRightRadius: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingLeft: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: -2,
       height: 0,
     },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 5, // Reduced elevation to minimize scroll interference
+    pointerEvents: "auto", // Only the button itself should receive touches
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
-    height: '80%',
+    height: "80%",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   closeButton: {
     padding: 8,
@@ -234,7 +266,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 12,
   },
   teamItem: {
@@ -248,7 +280,7 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   teamLeague: {
     fontSize: 12,
@@ -257,7 +289,7 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: 14,
     marginBottom: 8,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   matchText: {
     fontSize: 12,
@@ -265,12 +297,12 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingVertical: 40,
   },
   emptyText: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
-}); 
+});

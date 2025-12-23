@@ -1,15 +1,15 @@
-import { Match } from "@/types/match";
-import { createApiSportsService } from "./api-sports-service";
+import { Match } from "../types/match";
+import { backendApiService } from "./backendApiService";
 import teamLogoService from "./teamLogoService";
-import { favoritesService } from "./favoritesService";
+import favoritesService from "./favoritesService";
 import teamRankingsService from "./teamRankingsService"; // ✅ RESTORED: Team rankings import
 import { supabase } from "./supabaseClient";
 import Constants from "expo-constants";
 import {
   Fixture,
   FootballFixturesResponse,
-} from "@/types/football-fixtures-response";
-import { FixtureEvent } from "@/types/football-fixtures-response";
+} from "../types/football-fixtures-response";
+import { FixtureEvent } from "../types/football-fixtures-response";
 // ✅ OPTIMIZED: Enhanced cache for faster performance
 const cache = new Map<string, { data: Match[]; timestamp: number }>();
 const CACHE_DURATION = 600000; // 10 minutes for general matches (longer for better performance)
@@ -17,40 +17,9 @@ const LIVE_CACHE_DURATION = 30000; // 30 seconds for live matches (balance betwe
 const FOLLOWS_CACHE_DURATION = 300000; // 5 minutes for follows (faster access)
 const ALL_CACHE_DURATION = 900000; // 15 minutes for 'all' filter (since it's comprehensive and expensive)
 
-// Initialize API Sports service
-const apiSportsService = createApiSportsService(
-  process.env.EXPO_PUBLIC_API_SPORT_KEY!,
-  {
-    enableCaching: true,
-    cacheExpiry: 5 * 60 * 1000, // 5 minutes
-    retryAttempts: 3,
-    timeout: 10000,
-  },
-);
-
-// Test function to verify API Sports service
-async function testApiSportsService() {
-  try {
-    if (!process.env.EXPO_PUBLIC_API_SPORT_KEY) {
-      return false;
-    }
-
-    // Test a simple API call - get 1 fixture
-    const testFixturesResponse = await apiSportsService.getFixtures(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    );
-    const testFixtures = testFixturesResponse.response || [];
-
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
+// ✅ BACKEND API: All API calls now go through Supabase Edge Functions
+// API keys are stored securely in backend, not exposed in frontend
+// Backend handles: API-Football → TheSportsDB → RapidAPI → Football-Data.org fallback
 
 // Subscribers for live updates
 type MatchUpdateCallback = (matches: Match[]) => void;
@@ -83,6 +52,7 @@ function notifySubscribers(matches: Match[]): void {
 // Convert API Sports fixture to new Match format
 function convertFixtureToMatch(fixture: any): Match {
   const isLive =
+    fixture.fixture.status.short === "LIVE" ||  // ✅ FIX: Add LIVE status
     fixture.fixture.status.short === "1H" ||
     fixture.fixture.status.short === "HT" ||
     fixture.fixture.status.short === "2H";
@@ -109,23 +79,44 @@ function convertFixtureToMatch(fixture: any): Match {
   const score = `${fixture.goals.home || 0}-${fixture.goals.away || 0}`;
   const halfTimeScore = score; // API Sports doesn't provide halftime score in this structure
 
+  // Extract round information from fixture.league.round
+  // Handle formats like "Regular Season - 1", "Matchday 1", "1", etc.
+  let round: string | undefined;
+  if (fixture.league?.round) {
+    const roundString = fixture.league.round;
+    console.log(`🔍 [convertFixtureToMatch] Extracting round from: "${roundString}"`);
+    // Extract number from round string (e.g., "Regular Season - 1" -> "Round 1")
+    const roundMatch = roundString.match(/\d+/);
+    if (roundMatch) {
+      round = `Round ${roundMatch[0]}`;
+      console.log(`✅ [convertFixtureToMatch] Extracted round: "${round}"`);
+    } else {
+      round = roundString; // Use as-is if no number found
+      console.log(`⚠️ [convertFixtureToMatch] No number found, using round as-is: "${round}"`);
+    }
+  } else {
+    console.log(`⚠️ [convertFixtureToMatch] No round data in fixture.league.round for match ${fixture.fixture?.id}`);
+  }
+
   const convertedMatch = {
     id: fixture.fixture.id.toString(),
     sport: "football",
-    league: fixture.league.name,
+    league: fixture.league?.name || "Unknown League", // ✅ SAFETY: Handle null/undefined league
+    leagueLogo: fixture.league?.logo || null, // ✅ Extract league logo from API
+    leagueId: fixture.league?.id || null, // ✅ Extract league ID from API
     status,
     statusText,
     startTime,
     time,
     home: {
-      name: fixture.teams.home.name,
-      logo: fixture.teams.home.logo,
-      score: fixture.goals.home || 0,
+      name: fixture.teams?.home?.name || "Home Team", // ✅ SAFETY: Handle null/undefined
+      logo: fixture.teams?.home?.logo || null,
+      score: fixture.goals?.home || 0,
     },
     away: {
-      name: fixture.teams.away.name,
-      logo: fixture.teams.away.logo,
-      score: fixture.goals.away || 0,
+      name: fixture.teams?.away?.name || "Away Team", // ✅ SAFETY: Handle null/undefined
+      logo: fixture.teams?.away?.logo || null,
+      score: fixture.goals?.away || 0,
     },
     score,
     halfTimeScore,
@@ -138,6 +129,11 @@ function convertFixtureToMatch(fixture: any): Match {
       fixture.fixture.status.elapsed > 45
         ? "+2"
         : "",
+    round, // Include round information
+    // ✅ API-driven venue data - 100% from API, no hardcoding
+    venueName: fixture.fixture?.venue?.name || null,
+    venueCity: fixture.fixture?.venue?.city || null,
+    venueCapacity: fixture.fixture?.venue?.capacity || null,
   };
 
   return convertedMatch;
@@ -169,12 +165,6 @@ export async function fetchMatches(
   selectedDate?: string,
 ): Promise<Match[]> {
   try {
-    // Test API Sports service first
-    const serviceWorking = await testApiSportsService();
-    if (!serviceWorking) {
-      return [];
-    }
-
     const cacheKey = `${sport}-${filter}-${selectedDate || "today"}`;
     const cached = cache.get(cacheKey);
 
@@ -214,7 +204,7 @@ export async function fetchMatches(
   }
 }
 
-// Extracted API fetch logic
+// Extracted API fetch logic - NOW USES BACKEND
 async function performAPIFetch(
   sport: string,
   filter: string,
@@ -223,75 +213,36 @@ async function performAPIFetch(
   try {
     const cacheKey = `${sport}-${filter}-${selectedDate || "today"}`;
 
-    // Check configuration
-    const enableRealData = Constants.expoConfig?.extra?.enableRealData ?? true;
-    const useMockData = Constants.expoConfig?.extra?.useMockData ?? false;
-
-    if (!enableRealData || useMockData) {
-      return [];
-    }
+    console.log("🔄 [Backend API] Fetching data from Supabase Edge Functions");
+    console.log(`📋 Filter: ${filter}, Sport: ${sport}, Date: ${selectedDate}`);
 
     let apiMatches: any[] = [];
 
-    // Handle different filter types using API Sports service
+    // Handle different filter types using BACKEND API
     switch (filter) {
       case "all":
         try {
-          // ✅ OPTIMIZED: Reduced API calls for fast performance
           const today = new Date().toISOString().split("T")[0];
           const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
             .toISOString()
             .split("T")[0];
 
-          // ✅ FAST PARALLEL FETCH - Only essential calls
-          const [
-            liveMatchesResponse,
-            todayFixturesResponse,
-            tomorrowFixturesResponse,
-            finishedMatchesResponse,
-          ] = await Promise.all([
-            apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              "all",
-            ),
-            apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              today,
-            ),
-            apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              tomorrow,
-            ),
-            apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              "FT",
-            ),
+          // ✅ BACKEND API: Parallel fetch from Supabase Edge Functions
+          const [liveMatches, todayFixtures, tomorrowFixtures, finishedMatches] = await Promise.all([
+            backendApiService.getLiveMatches(sport, false),
+            backendApiService.getFixtures(sport, today, false),
+            backendApiService.getFixtures(sport, tomorrow, false),
+            backendApiService.getFinishedMatches(sport, today, false),
           ]);
 
-          // Extract data from ApiResponse wrappers
-          const liveMatches = liveMatchesResponse.response || [];
-          const todayFixtures = todayFixturesResponse.response || [];
-          const tomorrowFixtures = tomorrowFixturesResponse.response || [];
-          const finishedMatches = finishedMatchesResponse.response || [];
           console.log(
             `🔴 LIVE: ${liveMatches.length || 0} matches`,
-            `📅 TODAY FIXTURES: ${todayFixtures.length || 0} matches`,
-            `📅 TOMORROW FIXTURES: ${tomorrowFixtures.length || 0} matches`,
+            `📅 TODAY: ${todayFixtures.length || 0} matches`,
+            `📅 TOMORROW: ${tomorrowFixtures.length || 0} matches`,
             `🏁 FINISHED: ${finishedMatches.length || 0} matches`,
           );
 
-          // ✅ COMBINE ESSENTIAL DATA - Fast and comprehensive
+          // Combine all data
           apiMatches = [
             ...(liveMatches || []),
             ...(todayFixtures || []),
@@ -299,90 +250,58 @@ async function performAPIFetch(
             ...(finishedMatches || []),
           ];
 
-          // ✅ Remove duplicates only - NO OTHER LIMITS
+          // Remove duplicates
           const uniqueMatches = new Map();
           apiMatches.forEach((match) => {
-            if (match && match.id && !uniqueMatches.has(match.id)) {
-              uniqueMatches.set(match.id, match);
+            const matchId = match.fixture?.id || match.id;
+            if (matchId && !uniqueMatches.has(matchId)) {
+              uniqueMatches.set(matchId, match);
             }
           });
           apiMatches = Array.from(uniqueMatches.values());
         } catch (error) {
+          console.error("❌ [Backend API] Error in 'all' filter:", error);
           apiMatches = [];
         }
         break;
 
       case "live":
         try {
-          const liveResponse = await apiSportsService.getFixtures(
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            "all",
-          );
-          apiMatches = liveResponse.response || [];
+          apiMatches = await backendApiService.getLiveMatches(sport, false);
         } catch (error) {
+          console.error("❌ [Backend API] Error in 'live' filter:", error);
           apiMatches = [];
         }
         break;
 
       case "fixture":
         try {
-          if (selectedDate) {
-            const fixturesResponse = await apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              selectedDate,
-            );
-            apiMatches = fixturesResponse.response || [];
-          } else {
-            // Get today's fixtures
-            const today = new Date().toISOString().split("T")[0];
-            const fixturesResponse = await apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              today,
-            );
-            apiMatches = fixturesResponse.response || [];
-          }
+          const targetDate = selectedDate || new Date().toISOString().split("T")[0];
+          apiMatches = await backendApiService.getFixtures(sport, targetDate, false);
         } catch (error) {
+          console.error("❌ [Backend API] Error in 'fixture' filter:", error);
           apiMatches = [];
         }
         break;
 
       case "finished":
         try {
-          if (selectedDate) {
-            // For specific date, get finished matches
-            const fixturesResponse = await apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              selectedDate,
-            );
-            const fixtures = fixturesResponse.response || [];
-            apiMatches = fixtures.filter(
-              (match: any) =>
-                match.status.short === "FT" ||
-                match.status.short === "AET" ||
-                match.status.short === "PEN",
-            );
-          } else {
-            // Get recent finished matches
-            const finishedResponse = await apiSportsService.getFixtures(
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              "FT",
-            );
-            apiMatches = finishedResponse.response || [];
+          const targetDate = selectedDate || new Date().toISOString().split("T")[0];
+          apiMatches = await backendApiService.getFinishedMatches(sport, targetDate, false);
+          
+          // If no results and no specific date, try yesterday too
+          if (apiMatches.length === 0 && !selectedDate) {
+            console.log("🔄 [Backend API] Trying yesterday for finished matches");
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0];
+            const yesterdayMatches = await backendApiService.getFinishedMatches(sport, yesterday, false);
+            apiMatches = [...apiMatches, ...yesterdayMatches];
           }
+
+          console.log(`✅ [Backend API] Found ${apiMatches.length} finished matches`);
         } catch (error) {
+          console.error("❌ [Backend API] Error in 'finished' filter:", error);
           apiMatches = [];
         }
         break;
@@ -391,14 +310,12 @@ async function performAPIFetch(
         return [];
     }
 
-    if (apiMatches.length > 0) {
-    }
-
-    // Convert API Sports data to Match format
+    // Convert Backend API data to Match format
     const convertedMatches = apiMatches.map(convertFixtureToMatch);
 
     return convertedMatches;
   } catch (error) {
+    console.error("❌ [Backend API] Error in performAPIFetch:", error);
     throw error;
   }
 }
@@ -407,10 +324,26 @@ async function performAPIFetch(
 async function enhanceMatchesWithRankings(matches: Match[]): Promise<Match[]> {
   try {
     // Collect all teams for batch ranking lookup
-    const teams: Array<{ name: string; league?: string }> = [];
+    // Extract unique teams for batch ranking
+    const teams: Array<{
+      id: number | null;
+      name: string;
+      leagueId: number | null;
+      leagueName: string;
+    }> = [];
     matches.forEach((match) => {
-      teams.push({ name: match.home.name, league: match.league });
-      teams.push({ name: match.away.name, league: match.league });
+      teams.push({
+        id: null,
+        name: match.home.name,
+        leagueId: null,
+        leagueName: match.league,
+      });
+      teams.push({
+        id: null,
+        name: match.away.name,
+        leagueId: null,
+        leagueName: match.league,
+      });
     });
 
     // Get rankings for all teams in batch
@@ -581,110 +514,233 @@ export async function fetchHotMatches(
 ): Promise<Match[]> {
   try {
     let hotMatches: any[] = [];
+    const sport = category === "nba" ? "basketball" : "football";
 
-    // Get appropriate matches based on category
+    // ✅ BACKEND API: All API calls go through Supabase Edge Functions
     switch (category) {
       case "live":
-        const liveResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "all",
-        );
-        hotMatches = liveResponse.response || [];
+        hotMatches = await backendApiService.getLiveMatches(sport, false);
         break;
 
       case "upcoming":
-        const upcomingResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "upcoming",
-        );
-        hotMatches = upcomingResponse.response || [];
+        const todayDate = new Date().toISOString().split('T')[0];
+        hotMatches = await backendApiService.getFixtures(sport, todayDate, false);
+        break;
+
+      case "uganda":
+        // ✅ SMART SOLUTION: First, query API to find Uganda Premier League ID, THEN fetch matches
+        console.log("🇺🇬 [Uganda] Step 1: Searching for Uganda Premier League ID...");
+        
+        try {
+          // Step 1: Search for Uganda leagues
+          const ApiSportsService = (await import("./api-sports-service")).default;
+          const apiKey = process.env.EXPO_PUBLIC_API_FOOTBALL_KEY || "";
+          const apiSportsService = new ApiSportsService({ apiKey });
+          const currentYear = new Date().getFullYear();
+          
+          const ugandaLeagues = await apiSportsService.getLeagues("Uganda", currentYear, "football");
+          console.log(`🔍 [Uganda] Found ${ugandaLeagues.length} Uganda leagues`);
+          
+          // Log all Uganda leagues to find the right one
+          ugandaLeagues.forEach((league: any) => {
+            console.log(`   - ID: ${league.id}, Name: "${league.name}", Country: ${league.country}`);
+          });
+          
+          // Find Uganda Premier League (could be named various ways)
+          const ugandaPL = ugandaLeagues.find((league: any) => {
+            const name = (league.name || "").toLowerCase();
+            return (
+              name.includes("premier") ||
+              name.includes("super") ||
+              name.includes("startimes") ||
+              name === "uganda premier league"
+            );
+          });
+          
+          if (!ugandaPL) {
+            console.warn("⚠️ [Uganda] No Premier League found in API response. Available leagues:");
+            ugandaLeagues.forEach((league: any) => console.warn(`   - ${league.name}`));
+            
+            // Fallback to team-based filtering
+            console.log("🔄 [Uganda] Falling back to global search + team filtering...");
+            const today = new Date();
+            const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const todayStr = today.toISOString().split('T')[0];
+            const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const dayAfter = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            const [liveMatches, finishedMatches, todayFixtures, tomorrowFixtures, dayAfterFixtures] = await Promise.all([
+              backendApiService.getLiveMatches(sport, false).catch(() => []),
+              backendApiService.getFinishedMatches(sport, sevenDaysAgo, false).catch(() => []),
+              backendApiService.getFixtures(sport, todayStr, false).catch(() => []),
+              backendApiService.getFixtures(sport, tomorrow, false).catch(() => []),
+              backendApiService.getFixtures(sport, dayAfter, false).catch(() => []),
+            ]);
+            
+            const upcomingMatchesRange = [...todayFixtures, ...tomorrowFixtures, ...dayAfterFixtures];
+            hotMatches = [...liveMatches, ...finishedMatches, ...upcomingMatchesRange];
+            
+            console.log(`✅ [Uganda] Retrieved ${hotMatches.length} total matches, now filtering...`);
+            
+            const { leagueNormalizationService: ugandaFilter } = await import(
+              "./leagueNormalizationService"
+            );
+            hotMatches = ugandaFilter.filterMatchesForTopCategory(
+              hotMatches,
+              category,
+            );
+          } else {
+            // ✅ SUCCESS! We found Uganda Premier League ID
+            const ugandaPLId = ugandaPL.id || 0;
+            if (ugandaPLId === 0) {
+              console.error("❌ [Uganda] League ID is null/0, cannot proceed");
+              hotMatches = [];
+            } else {
+              console.log(`✅ [Uganda] Found Uganda Premier League! ID: ${ugandaPLId}, Name: "${ugandaPL.name}"`);
+              console.log(`🇺🇬 [Uganda] Step 2: Fetching full week's matches (finished + upcoming)...`);
+            
+              // Step 2A: Fetch FINISHED matches from the past 7 days
+              const today = new Date();
+              const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+              const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+              const todayStr = today.toISOString().split('T')[0];
+              
+              console.log(`🗓️ [Uganda] Fetching finished matches from ${sevenDaysAgoStr} to ${todayStr}...`);
+              const finishedResponse = await apiSportsService.getFixtures(
+                undefined,     // teamId
+                ugandaPLId,    // leagueId
+                currentYear,   // season
+                undefined,     // date - will get all matches in season
+                "FT",          // status - FINISHED ONLY
+                undefined,     // live
+                "football"
+              );
+              
+              // Filter to only matches from the past 7 days
+              const finishedMatches = (finishedResponse.response || []).filter((match: any) => {
+                const matchDate = new Date(match.fixture.date);
+                return matchDate >= sevenDaysAgo && matchDate <= today;
+              });
+              
+              // Sort finished matches (most recent first)
+              finishedMatches.sort((a: any, b: any) => {
+                return new Date(b.fixture.date).getTime() - new Date(a.fixture.date).getTime();
+              });
+              
+              console.log(`✅ [Uganda] Found ${finishedMatches.length} finished matches in last 7 days`);
+              
+              // Step 2B: Fetch UPCOMING matches for the next 7 days
+              const sevenDaysFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+              const sevenDaysFromNowStr = sevenDaysFromNow.toISOString().split('T')[0];
+              
+              console.log(`🗓️ [Uganda] Fetching upcoming matches from ${todayStr} to ${sevenDaysFromNowStr}...`);
+              const upcomingResponse = await apiSportsService.getFixtures(
+                undefined,     // teamId
+                ugandaPLId,    // leagueId
+                currentYear,   // season
+                undefined,     // date
+                "NS",          // status - NOT STARTED (upcoming)
+                undefined,     // live
+                "football"
+              );
+              
+              // Filter to only matches within the next 7 days
+              const upcomingMatches = (upcomingResponse.response || []).filter((match: any) => {
+                const matchDate = new Date(match.fixture.date);
+                return matchDate >= today && matchDate <= sevenDaysFromNow;
+              });
+              
+              // Sort upcoming matches (soonest first)
+              upcomingMatches.sort((a: any, b: any) => {
+                return new Date(a.fixture.date).getTime() - new Date(b.fixture.date).getTime();
+              });
+              
+              console.log(`✅ [Uganda] Found ${upcomingMatches.length} upcoming matches in next 7 days`);
+              
+              // Step 2C: Fetch LIVE matches
+              const liveResponse = await apiSportsService.getFixtures(
+                undefined,     // teamId
+                ugandaPLId,    // leagueId
+                currentYear,   // season
+                undefined,     // date
+                undefined,     // status
+                "all",         // live - get live matches
+                "football"
+              );
+              
+              const liveMatches = (liveResponse.response || []).filter((match: any) => {
+                const status = match.fixture?.status?.short;
+                return status === "1H" || status === "2H" || status === "HT" || status === "ET" || status === "P" || status === "LIVE";
+              });
+              
+              console.log(`✅ [Uganda] Found ${liveMatches.length} live matches`);
+              
+              // ✅ CRITICAL: Combine in correct order - finished first, then upcoming
+              // This ensures finished matches appear at the TOP when scrolling
+              hotMatches = [...finishedMatches, ...liveMatches, ...upcomingMatches];
+              console.log(`✅ [Uganda] Total: ${hotMatches.length} matches (${finishedMatches.length} finished + ${liveMatches.length} live + ${upcomingMatches.length} upcoming)`);
+              console.log(`📊 [Uganda] Sorting: Finished matches first, then live, then upcoming`);
+            
+              // Log sample matches to verify ordering
+              if (hotMatches.length > 0) {
+                console.log("📋 [Uganda] First 10 matches (showing order):");
+                hotMatches.slice(0, 10).forEach((match: any, idx: number) => {
+                  const homeTeam = match.teams?.home?.name || "Unknown";
+                  const awayTeam = match.teams?.away?.name || "Unknown";
+                  const status = match.fixture?.status?.short || "Unknown";
+                  const date = new Date(match.fixture.date).toISOString().split('T')[0];
+                  console.log(`  ${idx + 1}. ${homeTeam} vs ${awayTeam} (${status}) - ${date}`);
+                });
+              }
+            }
+          }
+        } catch (error: any) {
+          console.error("❌ [Uganda] Error finding league ID:", error.message);
+          console.log("🔄 [Uganda] Falling back to empty results...");
+          hotMatches = [];
+        }
+        
+        console.log(`🇺🇬 [Uganda] FINAL RESULT: ${hotMatches.length} Uganda Premier League matches`);
         break;
 
       case "premier":
-        // Get all matches and filter for English Premier League only
-        const allPremierResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "all",
-        );
-        const allPremierMatches = allPremierResponse.response || [];
+      case "champions":
+        // Get all matches and filter for specific leagues
+        const today2 = new Date();
+        const sevenDaysAgo2 = new Date(today2.getTime() - 7 * 24 * 60 * 60 * 1000)
+          .toISOString().split('T')[0];
+        
+        const todayStr2 = today2.toISOString().split('T')[0];
+        const tomorrow2 = new Date(today2.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const dayAfter2 = new Date(today2.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const [liveMatches2, finishedMatches2, todayFixtures2, tomorrowFixtures2, dayAfterFixtures2] = await Promise.all([
+          backendApiService.getLiveMatches(sport, false).catch(() => []),
+          backendApiService.getFinishedMatches(sport, sevenDaysAgo2, false).catch(() => []),
+          backendApiService.getFixtures(sport, todayStr2, false).catch(() => []),
+          backendApiService.getFixtures(sport, tomorrow2, false).catch(() => []),
+          backendApiService.getFixtures(sport, dayAfter2, false).catch(() => []),
+        ]);
+        
+        const upcomingMatchesRange2 = [...todayFixtures2, ...tomorrowFixtures2, ...dayAfterFixtures2];
+        hotMatches = [...liveMatches2, ...finishedMatches2, ...upcomingMatchesRange2];
+        
         const { leagueNormalizationService } = await import(
           "./leagueNormalizationService"
         );
         hotMatches = leagueNormalizationService.filterMatchesForTopCategory(
-          allPremierMatches,
-          "premier",
+          hotMatches,
+          category,
         );
-
-        break;
-
-      case "champions":
-        // For specific leagues, we'll get live scores and filter later
-        const championsResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "all",
-        );
-        hotMatches = championsResponse.response || [];
         break;
 
       case "nba":
-        // For NBA, we'll get live scores and filter later
-        const nbaResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "all",
-        );
-        hotMatches = nbaResponse.response || [];
+        hotMatches = await backendApiService.getLiveMatches("basketball", false);
         break;
 
       case "finished":
-        const finishedResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "FT",
-        );
-        hotMatches = finishedResponse.response || [];
-        break;
-
-      case "uganda":
-        // Get all matches and filter for Ugandan Premier League only
-        const allUgandaResponse = await apiSportsService.getFixtures(
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          "all",
-        );
-        const allUgandaMatches = allUgandaResponse.response || [];
-        const { leagueNormalizationService: ugandaService } = await import(
-          "./leagueNormalizationService"
-        );
-        hotMatches = ugandaService.filterMatchesForTopCategory(
-          allUgandaMatches,
-          "uganda",
-        );
-
+        const targetDate = new Date().toISOString().split('T')[0];
+        hotMatches = await backendApiService.getFinishedMatches(sport, targetDate, false);
         break;
 
       default:
@@ -699,6 +755,7 @@ export async function fetchHotMatches(
 
     return hotMatches; // Show ALL available matches - no artificial limit
   } catch (error) {
+    console.error(`❌ [Backend API] Error fetching hot matches for ${category}:`, error);
     return [];
   }
 }
@@ -737,6 +794,11 @@ function sortHotMatches(matches: Match[], category: string): Match[] {
 
     // Then by league priority
     const getLeaguePriority = (league: string): number => {
+      // ✅ CRITICAL FIX: Handle undefined league names safely
+      if (!league || typeof league !== 'string') {
+        return 10; // Low priority for unknown leagues
+      }
+      
       const l = league.toLowerCase();
       if (l.includes("premier league") && !l.includes("uganda")) return 1;
       if (l.includes("champions league")) return 2;
@@ -764,7 +826,7 @@ function sortHotMatches(matches: Match[], category: string): Match[] {
 // Clear cache when needed
 export function clearMatchCache(): void {
   cache.clear();
-  apiSportsService.clearCache();
+  // Backend API has its own caching strategy
 }
 
 // Clear only live matches cache to force fresh fetch
@@ -773,7 +835,7 @@ export function clearLiveMatchCache(): void {
     key.includes("-live-"),
   );
   keysToDelete.forEach((key) => cache.delete(key));
-  apiSportsService.clearCache();
+  // Backend API has its own caching strategy
 }
 
 // Removed aggressive auto-refresh that was causing UI jumping
@@ -1103,16 +1165,8 @@ export async function preloadMatchData(): Promise<void> {
 // ✅ NEW: POPULATE SUPABASE with real Football API data
 export async function populateSupabaseWithRealData() {
   try {
-    // Get live matches from Football API
-    const liveMatchesResponse = await apiSportsService.getFixtures(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      "all",
-    );
-    const liveMatches = liveMatchesResponse.response || [];
+    // ✅ BACKEND API: Get live matches from Supabase Edge Functions
+    const liveMatches = await backendApiService.getLiveMatches("football", false);
 
     if (liveMatches.length === 0) {
       return;

@@ -1,6 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import type { Language } from '@/contexts/LanguageContext';
+import type { Language } from '../contexts/LanguageContext';
 
 const resources = {
   en: {

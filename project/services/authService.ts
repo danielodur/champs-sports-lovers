@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import { Session, User, AuthError } from "@supabase/supabase-js";
+import { sanitizeErrorMessage } from "../utils/errorUtils";
 
 export interface UserProfile {
   id: string;
@@ -44,26 +45,62 @@ class AuthService {
     return "champs://auth/callback";
   }
 
+  /**
+   * Sanitize auth errors to prevent technical details from showing to users
+   * Made public for testing purposes
+   */
+  handleAuthError(error: any): { error: AuthError } {
+    const sanitizedMessage = sanitizeErrorMessage(error);
+
+    // If we already have an AuthError, just update the message
+    if (error && typeof error === "object" && error.message !== undefined) {
+      const sanitizedError = { ...error };
+      sanitizedError.message = sanitizedMessage;
+      return { error: sanitizedError as AuthError };
+    }
+
+    // For other errors, create a compatible error object
+    const authError = new Error(sanitizedMessage) as any;
+    authError.status = error?.status || 400;
+    authError.code = error?.code || error?.status;
+
+    return { error: authError as AuthError };
+  }
+
   constructor() {
     // Listen to auth state changes
     supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔐 Auth state changed:", event);
+      console.log(
+        "🔐 Auth state changed:",
+        event,
+        session?.user?.email || "no user",
+      );
 
       if (event === "SIGNED_IN" && session?.user) {
+        console.log("✅ SIGNED_IN event triggered for:", session.user.email);
         try {
           await this.handleUserSignIn(session.user);
         } catch (error) {
-          console.error("❌ Error handling user sign in:", error);
+          console.log("❌ Error handling user sign in, but proceeding");
           // Still notify auth state change even if profile creation fails
+          const fallbackProfile = {
+            id: session.user.id,
+            username: session.user.email?.split("@")[0] || `user_${Date.now()}`,
+            email: session.user.email,
+            champs_id:
+              `CHP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`.toUpperCase(),
+          } as UserProfile;
+
           this.notifyAuthStateChange({
             user: session.user,
-            profile: null,
+            profile: fallbackProfile,
             session,
             loading: false,
             isLoggedIn: true,
           });
         }
       } else if (event === "SIGNED_OUT") {
+        console.log("🚪 SIGNED_OUT event triggered");
         // Clear current user from favorites service
         try {
           const { favoritesService } = await import("./favoritesService");
@@ -101,7 +138,7 @@ class AuthService {
         } catch (serviceError) {
           console.warn(
             "⚠️ Warning: Could not cleanup all services:",
-            serviceError
+            serviceError,
           );
         }
 
@@ -125,7 +162,7 @@ class AuthService {
     // Return unsubscribe function
     return () => {
       this.authStateCallbacks = this.authStateCallbacks.filter(
-        (cb) => cb !== callback
+        (cb) => cb !== callback,
       );
     };
   }
@@ -142,6 +179,8 @@ class AuthService {
    */
   private async handleUserSignIn(user: User) {
     try {
+      console.log("🔐 Starting user sign-in process for:", user.email);
+
       // Set current user in favorites service
       const { favoritesService } = await import("./favoritesService");
       favoritesService.setCurrentUser(user.id);
@@ -158,12 +197,33 @@ class AuthService {
 
         // Fetch the updated profile
         profile = await this.getUserProfile(user.id);
+
+        if (!profile) {
+          console.log(
+            "⚠️ Profile creation failed, proceeding with minimal profile",
+          );
+          // Create a minimal profile object for successful authentication
+          profile = {
+            id: user.id,
+            username:
+              user.user_metadata?.username ||
+              user.email?.split("@")[0] ||
+              `user_${Date.now()}`,
+            email: user.email,
+            champs_id:
+              `CHP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`.toUpperCase(),
+          } as UserProfile;
+        }
       } else {
+        console.log("👤 Existing user profile found:", profile.username);
         // For existing users, try to migrate any remaining legacy data
         await this.migrateLegacyProfileData(user.id);
 
         // Refresh profile data after potential migration
-        profile = await this.getUserProfile(user.id);
+        const refreshedProfile = await this.getUserProfile(user.id);
+        if (refreshedProfile) {
+          profile = refreshedProfile;
+        }
       }
 
       // Migrate legacy favorites after profile is set up
@@ -172,7 +232,7 @@ class AuthService {
       } catch (favError) {
         console.warn(
           "⚠️ Warning: Could not migrate legacy favorites:",
-          favError
+          favError,
         );
       }
 
@@ -205,7 +265,7 @@ class AuthService {
       } catch (serviceError) {
         console.warn(
           "⚠️ Warning: Could not initialize all services:",
-          serviceError
+          serviceError,
         );
       }
 
@@ -219,10 +279,25 @@ class AuthService {
         isLoggedIn: true,
       });
     } catch (error) {
-      console.error("❌ Error handling user sign in:", error);
+      console.log(
+        "❌ Error handling user sign in, but proceeding with authentication",
+      );
+
+      // Even if profile creation fails, we should still authenticate the user
+      const minimalProfile: UserProfile = {
+        id: user.id,
+        username:
+          user.user_metadata?.username ||
+          user.email?.split("@")[0] ||
+          `user_${Date.now()}`,
+        email: user.email,
+        champs_id:
+          `CHP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`.toUpperCase(),
+      } as UserProfile;
+
       this.notifyAuthStateChange({
         user,
-        profile: null,
+        profile: minimalProfile,
         session: await supabase.auth
           .getSession()
           .then(({ data }) => data.session),
@@ -245,7 +320,7 @@ class AuthService {
       } = await supabase.auth.getSession();
 
       if (error) {
-        console.error("❌ Error getting session:", error);
+        console.log("❌ Error getting session");
         return {
           user: null,
           profile: null,
@@ -281,7 +356,7 @@ class AuthService {
       this.notifyAuthStateChange(authState);
       return authState;
     } catch (error) {
-      console.error("❌ Error initializing auth:", error);
+      console.log("❌ Error initializing auth");
       const authState: AuthState = {
         user: null,
         profile: null,
@@ -310,15 +385,15 @@ class AuthService {
       });
 
       if (error) {
-        console.error("❌ Phone sign in error:", error);
-        return { error };
+        console.log("❌ Phone sign in failed");
+        return this.handleAuthError(error);
       }
 
       console.log("✅ OTP sent to phone:", phone);
       return {};
     } catch (error) {
-      console.error("❌ Phone sign in error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Phone sign in failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -330,10 +405,10 @@ class AuthService {
       // Validate phone number format
       if (!phone.startsWith("+")) {
         const error = new Error(
-          "Phone number must be in international format (e.g., +1234567890)"
-        ) as AuthError;
-        console.error("❌ WhatsApp sign in error: Invalid phone format");
-        return { error };
+          "Phone number must be in international format (e.g., +1234567890)",
+        );
+        console.log("❌ WhatsApp sign in error: Invalid phone format");
+        return this.handleAuthError(error);
       }
 
       const { error } = await supabase.auth.signInWithOtp({
@@ -344,36 +419,15 @@ class AuthService {
       });
 
       if (error) {
-        console.error("❌ WhatsApp sign in error:", error.message);
-
-        // Provide more specific error messages
-        if (
-          error.message.includes("SMS provider") ||
-          error.message.includes("configuration")
-        ) {
-          error.message =
-            "WhatsApp provider not configured. Please contact support.";
-        } else if (
-          error.message.includes("channel") ||
-          error.message.includes("WhatsApp")
-        ) {
-          error.message = "WhatsApp channel not supported by your provider.";
-        } else if (
-          error.message.includes("rate limit") ||
-          error.message.includes("too many")
-        ) {
-          error.message =
-            "Rate limit exceeded. Please wait before trying again.";
-        }
-
-        return { error };
+        console.log("❌ WhatsApp sign in failed");
+        return this.handleAuthError(error);
       }
 
       console.log("✅ OTP sent to WhatsApp:", phone);
       return {};
     } catch (error) {
-      console.error("❌ WhatsApp sign in error:", error);
-      return { error: error as AuthError };
+      console.log("❌ WhatsApp sign in failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -382,27 +436,27 @@ class AuthService {
    */
   async verifyPhoneOtp(
     phone: string,
-    token: string
-  ): Promise<{ error?: AuthError }> {
+    token: string,
+  ): Promise<{ data?: any; error?: AuthError }> {
     try {
-      console.log("🔐 Verifying OTP for phone:", phone);
+      console.log("🔐 Verifying phone OTP for:", phone);
 
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         phone,
         token,
         type: "sms",
       });
 
       if (error) {
-        console.error("❌ OTP verification error:", error);
-        return { error };
+        console.log("❌ Phone OTP verification failed");
+        return this.handleAuthError(error);
       }
 
-      console.log("✅ Phone OTP verified successfully");
-      return {};
+      console.log("✅ Phone OTP verification successful");
+      return { data };
     } catch (error) {
-      console.error("❌ OTP verification error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Phone OTP verification failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -411,26 +465,37 @@ class AuthService {
    */
   async signInWithEmail(
     email: string,
-    password: string
-  ): Promise<{ error?: AuthError }> {
+    password: string,
+  ): Promise<{ data?: any; error?: AuthError }> {
     try {
       console.log("📧 Signing in with email:", email);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        console.error("❌ Email sign in error:", error);
-        return { error };
+        console.log("❌ Email sign in failed:", error.message);
+        return this.handleAuthError(error);
       }
 
-      console.log("✅ Email sign in successful");
-      return {};
+      console.log("✅ Email sign in successful for:", data.user?.email);
+      console.log("🔐 Auth state change should trigger automatically");
+
+      // Verify the user was signed in
+      if (data.user) {
+        console.log("👤 User object received:", {
+          id: data.user.id,
+          email: data.user.email,
+          confirmed: data.user.email_confirmed_at ? "confirmed" : "pending",
+        });
+      }
+
+      return { data };
     } catch (error) {
-      console.error("❌ Email sign in error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Email sign in failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -458,7 +523,7 @@ class AuthService {
         }
 
         if (error) {
-          console.error("❌ Error checking username:", error);
+          console.log("❌ Error checking username");
           break;
         }
 
@@ -466,7 +531,7 @@ class AuthService {
         username = `${baseUsername}${counter}`;
         counter++;
       } catch (error) {
-        console.error("❌ Error in username generation:", error);
+        console.log("❌ Error in username generation");
         break;
       }
     }
@@ -485,8 +550,8 @@ class AuthService {
   async signUpWithEmail(
     email: string,
     password: string,
-    username?: string
-  ): Promise<{ error?: AuthError }> {
+    username?: string,
+  ): Promise<{ data?: any; error?: AuthError }> {
     try {
       console.log("📧 Signing up with email:", email);
 
@@ -502,7 +567,7 @@ class AuthService {
 
       console.log(`🎯 Using unique username: ${uniqueUsername}`);
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -513,18 +578,22 @@ class AuthService {
       });
 
       if (error) {
-        console.error("❌ Email sign up error:", error);
-        return { error };
+        console.log("❌ Email sign up failed");
+        return this.handleAuthError(error);
       }
 
-      console.log("✅ Email sign up successful with unique username");
+      console.log(
+        "✅ Email sign up successful with unique username:",
+        uniqueUsername,
+      );
+      console.log("📧 User will need to verify email before signing in");
 
       // Note: User needs to verify email before they can sign in
-      // Return success without auto sign-in - user will need to sign in manually after email verification
-      return {};
+      // Return success with data - user will need to sign in manually after email verification
+      return { data };
     } catch (error) {
-      console.error("❌ Email sign up error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Email sign up failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -538,14 +607,14 @@ class AuthService {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.error("❌ Sign out error:", error);
+        console.log("❌ Sign out failed");
         return { error };
       }
 
       console.log("✅ User signed out successfully");
       return {};
     } catch (error) {
-      console.error("❌ Sign out error:", error);
+      console.log("❌ Sign out failed");
       return { error: error as AuthError };
     }
   }
@@ -562,13 +631,13 @@ class AuthService {
         .single();
 
       if (error) {
-        console.error("❌ Error fetching user profile:", error);
+        console.log("❌ Error fetching user profile");
         return null;
       }
 
       return data as UserProfile;
     } catch (error) {
-      console.error("❌ Error fetching user profile:", error);
+      console.log("❌ Error fetching user profile");
       return null;
     }
   }
@@ -578,7 +647,7 @@ class AuthService {
    */
   async updateProfile(
     userId: string,
-    updates: Partial<UserProfile>
+    updates: Partial<UserProfile>,
   ): Promise<{ error?: any }> {
     try {
       console.log("👤 Updating user profile:", userId);
@@ -589,8 +658,8 @@ class AuthService {
         .eq("id", userId);
 
       if (error) {
-        console.error("❌ Profile update error:", error);
-        return { error };
+        console.log("❌ Profile update failed");
+        return this.handleAuthError(error);
       }
 
       console.log("✅ Profile updated successfully");
@@ -603,8 +672,8 @@ class AuthService {
 
       return {};
     } catch (error) {
-      console.error("❌ Profile update error:", error);
-      return { error };
+      console.log("❌ Profile update failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -632,14 +701,14 @@ class AuthService {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
 
       if (error) {
-        console.error("❌ Password reset error:", error);
-        return { error };
+        console.log("❌ Password reset failed");
+        return this.handleAuthError(error);
       }
 
       return {};
     } catch (error) {
-      console.error("❌ Password reset error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Password reset failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -669,8 +738,8 @@ class AuthService {
       console.log("🔐 OAuth response error:", error);
 
       if (error) {
-        console.error("❌ Google sign in error:", error);
-        return { error };
+        console.log("❌ Google sign in failed");
+        return this.handleAuthError(error);
       }
 
       if (data?.url) {
@@ -681,8 +750,8 @@ class AuthService {
       console.log("✅ Google sign in initiated");
       return {};
     } catch (error) {
-      console.error("❌ Google sign in error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Google sign in failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -705,8 +774,8 @@ class AuthService {
       });
 
       if (error) {
-        console.error("❌ Facebook sign in error:", error);
-        return { error };
+        console.log("❌ Facebook sign in failed");
+        return this.handleAuthError(error);
       }
 
       if (data?.url) {
@@ -717,8 +786,8 @@ class AuthService {
       console.log("✅ Facebook sign in initiated");
       return {};
     } catch (error) {
-      console.error("❌ Facebook sign in error:", error);
-      return { error: error as AuthError };
+      console.log("❌ Facebook sign in failed");
+      return this.handleAuthError(error);
     }
   }
 
@@ -726,7 +795,7 @@ class AuthService {
    * Generic social sign in method
    */
   async signInWithSocial(
-    provider: "google" | "facebook"
+    provider: "google" | "facebook",
   ): Promise<{ error?: AuthError; url?: string }> {
     try {
       console.log(`🔐 Signing in with ${provider}`);
@@ -740,14 +809,14 @@ class AuthService {
       });
 
       if (error) {
-        console.error(`❌ ${provider} sign in error:`, error);
-        return { error };
+        console.log(`❌ ${provider} sign in failed`);
+        return this.handleAuthError(error);
       }
 
       if (data?.url) {
         console.log(
           `🌐 ${provider} OAuth URL generated for WebView:`,
-          data.url
+          data.url,
         );
         return { url: data.url };
       }
@@ -755,8 +824,8 @@ class AuthService {
       console.log(`✅ ${provider} sign in initiated`);
       return {};
     } catch (error) {
-      console.error(`❌ ${provider} sign in error:`, error);
-      return { error: error as AuthError };
+      console.log(`❌ ${provider} sign in failed`);
+      return this.handleAuthError(error);
     }
   }
 
@@ -783,15 +852,22 @@ class AuthService {
         updated_at: new Date().toISOString(),
       };
 
+      console.log("👤 Creating profile with data:", {
+        id: profileData.id,
+        username: profileData.username,
+        email: profileData.email,
+      });
+
       const { error } = await supabase.from("profiles").insert([profileData]);
 
       if (error) {
-        console.error("❌ Error creating user profile:", error);
+        console.log("❌ Error creating user profile:", error.message);
+        // Don't throw error, let authentication continue
       } else {
         console.log("✅ User profile created successfully");
       }
     } catch (error) {
-      console.error("❌ Error creating user profile:", error);
+      console.log("❌ Error creating user profile");
     }
   }
 
@@ -803,11 +879,12 @@ class AuthService {
       const { profileService } = await import("./profileService");
       await profileService.migrateLegacyProfile(userId);
     } catch (error) {
-      console.error("❌ Error migrating legacy profile data:", error);
+      console.log("❌ Error migrating legacy profile data");
     }
   }
 }
 
-// Export singleton instance
-export const authService = new AuthService();
+const authService = new AuthService();
+
+export { authService };
 export default authService;

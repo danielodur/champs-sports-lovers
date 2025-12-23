@@ -5,28 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Modal,
-  Dimensions,
 } from "react-native";
-import {
-  Goal,
-  BarChart3,
-  TrendingUp,
-  Clock,
-  Trophy,
-  X,
-  Target,
-  Zap,
-  Shield,
-  Award,
-  Activity,
-  Timer,
-  Sliders,
-  Calculator,
-  CornerDownRight,
-} from "lucide-react-native";
-import { useTheme } from "@/hooks/useTheme";
+import { useTheme } from "../hooks/useTheme";
 import { useTranslation } from "react-i18next";
+import SortMatchesModal from "./panel/matches-screens/matches-filter/sort-matches";
 
 interface FilterTabsProps {
   active: string;
@@ -38,18 +20,9 @@ interface FilterTabsProps {
   currentSortMode?: string;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
 // Custom Score Icon Component
 const ScoreIcon = ({ color }: { color: string }) => (
   <Text style={[styles.scoreIconText, { color }]}>|2:1|</Text>
-);
-
-// Custom Modal Score Icon Component
-const ModalScoreIcon = ({ color }: { color: string }) => (
-  <View style={[styles.scoreIcon, { borderColor: color }]}>
-    <Text style={[styles.scoreText, { color }]}>2-1</Text>
-  </View>
 );
 
 export default function FilterTabs({
@@ -103,126 +76,36 @@ export default function FilterTabs({
     onSelect(tabId);
   };
 
-  // Sport-specific match modes
-  const getMatchModes = (sport: string) => {
-    switch (sport) {
-      case "football":
-        return [
-          { id: "score", label: "Score", icon: ModalScoreIcon },
-          { id: "score-index", label: "Score & Odds", icon: BarChart3 },
-          {
-            id: "corner-index",
-            label: "Corners & Odds",
-            icon: CornerDownRight,
-          },
-        ];
-      case "basketball":
-        return [
-          { id: "score", label: "Score", icon: ModalScoreIcon },
-          { id: "score-index", label: "Score & Odds", icon: BarChart3 },
-          { id: "points-rebounds", label: "Points & Rebounds", icon: Activity },
-        ];
-      case "rugby":
-        return [
-          { id: "score", label: "Score", icon: ModalScoreIcon },
-          { id: "score-index", label: "Score & Odds", icon: BarChart3 },
-          {
-            id: "tries-conversions",
-            label: "Tries & Conversions",
-            icon: Award,
-          },
-        ];
-      case "boxing":
-        return [
-          { id: "rounds", label: "Rounds", icon: Timer },
-          { id: "rounds-index", label: "Rounds & Odds", icon: BarChart3 },
-          { id: "knockouts", label: "Knockouts & KO", icon: Zap },
-        ];
-      default:
-        return [
-          { id: "score", label: "Score", icon: ModalScoreIcon },
-          { id: "score-index", label: "Score & Odds", icon: BarChart3 },
-          { id: "general-stats", label: "General Stats", icon: TrendingUp },
-        ];
-    }
-  };
-
-  // Sport-specific sorting modes
-  const getSortModes = (sport: string) => {
-    switch (sport) {
-      case "football":
-        return [
-          { id: "time", label: "By Time", icon: Clock },
-          { id: "league", label: "By League", icon: Trophy },
-        ];
-      case "basketball":
-        return [
-          { id: "time", label: "By Time", icon: Clock },
-          { id: "conference", label: "By Conference", icon: Trophy },
-        ];
-      case "rugby":
-        return [
-          { id: "time", label: "By Time", icon: Clock },
-          { id: "tournament", label: "By Tournament", icon: Trophy },
-        ];
-      case "boxing":
-        return [
-          { id: "time", label: "By Time", icon: Clock },
-          { id: "weight-class", label: "By Weight Class", icon: Award },
-        ];
-      default:
-        return [
-          { id: "time", label: "By Time", icon: Clock },
-          { id: "league", label: "By League", icon: Trophy },
-        ];
-    }
-  };
-
-  const matchModes = getMatchModes(currentSport);
-  const sortModes = getSortModes(currentSport);
-
-  // Get sport-specific modal title
-  const getModalTitle = (sport: string) => {
-    switch (sport) {
-      case "football":
-        return "Football Match Settings";
-      case "basketball":
-        return "Basketball Game Settings";
-      case "rugby":
-        return "Rugby Match Settings";
-      case "boxing":
-        return "Boxing Match Settings";
-      default:
-        return "Match Display Settings";
-    }
-  };
-
-  const handleConfirm = () => {
-    // Apply the selected settings
+  const handleConfirm = (matchMode: string, sortMode: string) => {
+    // Close modal
     setShowMatchModeModal(false);
+
+    // Update local state
+    setSelectedMatchMode(matchMode);
+    setSelectedSortMode(sortMode);
 
     // ✅ INSTANT RESPONSE - Apply changes immediately
     console.log(
       "⚡ INSTANT SETTINGS APPLY:",
-      selectedMatchMode,
-      selectedSortMode
+      matchMode,
+      sortMode
     );
 
     // Notify parent components about the changes with immediate callbacks
     if (onSortChange) {
-      onSortChange(selectedSortMode);
+      onSortChange(sortMode);
     }
     if (onDisplayModeChange) {
-      onDisplayModeChange(selectedMatchMode);
+      onDisplayModeChange(matchMode);
     }
 
     console.log(
       "✅ Applied settings for",
       currentSport,
       ": Mode:",
-      selectedMatchMode,
+      matchMode,
       ", Sort:",
-      selectedSortMode
+      sortMode
     );
   };
 
@@ -301,225 +184,40 @@ export default function FilterTabs({
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity
-          style={[
-            styles.settingsButton,
-            {
-              backgroundColor: theme.colors.backgroundSecondary,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          onPress={() => setShowMatchModeModal(true)}
-          activeOpacity={0.7}
-        >
-          <ScoreIcon
-            color={
-              theme.colors.background === "#FFFFFF" ? "#000000" : "#FFFFFF"
-            }
-          />
-        </TouchableOpacity>
+        {/* ✅ FOOTBALL ONLY: Sort Matches Button - Only visible for football */}
+        {currentSport === "football" && (
+          <TouchableOpacity
+            style={[
+              styles.settingsButton,
+              {
+                backgroundColor: theme.colors.backgroundSecondary,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+              },
+            ]}
+            onPress={() => setShowMatchModeModal(true)}
+            activeOpacity={0.7}
+          >
+            <ScoreIcon
+              color={
+                theme.colors.background === "#FFFFFF" ? "#000000" : "#FFFFFF"
+              }
+            />
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
-      {/* Match Mode Modal */}
-      <Modal
-        visible={showMatchModeModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={handleCancel}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalContainer,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            {/* Header - Hidden for Rugby */}
-            {currentSport !== "rugby" && (
-              <View
-                style={[
-                  styles.modalHeader,
-                  { borderBottomColor: theme.colors.border },
-                ]}
-              >
-                <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
-                  {getModalTitle(currentSport)}
-                </Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={handleCancel}
-                >
-                  <X size={20} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Close button for Rugby (since header is hidden) */}
-            {currentSport === "rugby" && (
-              <View style={styles.rugbyCloseButtonContainer}>
-                <TouchableOpacity
-                  style={styles.rugbyCloseButton}
-                  onPress={handleCancel}
-                >
-                  <X size={20} color={theme.colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Content */}
-            <ScrollView style={styles.modalContent}>
-              {/* Match Mode Section */}
-              <View style={styles.section}>
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.text }]}
-                >
-                  {currentSport === "boxing" ? "Fight Mode" : "Match Mode"}
-                </Text>
-                <View style={styles.optionsGrid}>
-                  {matchModes.map((mode) => {
-                    const IconComponent = mode.icon;
-                    const isSelected = selectedMatchMode === mode.id;
-                    return (
-                      <TouchableOpacity
-                        key={mode.id}
-                        style={[
-                          styles.optionCard,
-                          {
-                            backgroundColor: isSelected
-                              ? theme.colors.primary
-                              : theme.colors.backgroundSecondary,
-                            borderColor: isSelected
-                              ? theme.colors.primary
-                              : theme.colors.border,
-                          },
-                        ]}
-                        onPress={() => setSelectedMatchMode(mode.id)}
-                      >
-                        {IconComponent === ModalScoreIcon ? (
-                          <IconComponent
-                            color={
-                              isSelected
-                                ? "#FFFFFF"
-                                : theme.colors.textSecondary
-                            }
-                          />
-                        ) : (
-                          <IconComponent
-                            size={24}
-                            color={
-                              isSelected
-                                ? "#FFFFFF"
-                                : theme.colors.textSecondary
-                            }
-                          />
-                        )}
-                        <Text
-                          style={[
-                            styles.optionText,
-                            {
-                              color: isSelected ? "#FFFFFF" : theme.colors.text,
-                            },
-                          ]}
-                        >
-                          {mode.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Match Sorting Section */}
-              <View style={styles.section}>
-                <Text
-                  style={[styles.sectionTitle, { color: theme.colors.text }]}
-                >
-                  {currentSport === "boxing"
-                    ? "Fight Sorting"
-                    : "Match Sorting"}
-                </Text>
-                <View style={styles.sortingOptions}>
-                  {sortModes.map((mode) => {
-                    const IconComponent = mode.icon;
-                    const isSelected = selectedSortMode === mode.id;
-                    return (
-                      <TouchableOpacity
-                        key={mode.id}
-                        style={[
-                          styles.sortingCard,
-                          {
-                            backgroundColor: isSelected
-                              ? theme.colors.primary
-                              : theme.colors.backgroundSecondary,
-                            borderColor: isSelected
-                              ? theme.colors.primary
-                              : theme.colors.border,
-                          },
-                        ]}
-                        onPress={() => setSelectedSortMode(mode.id)}
-                      >
-                        <IconComponent
-                          size={20}
-                          color={
-                            isSelected ? "#FFFFFF" : theme.colors.textSecondary
-                          }
-                        />
-                        <Text
-                          style={[
-                            styles.sortingText,
-                            {
-                              color: isSelected ? "#FFFFFF" : theme.colors.text,
-                            },
-                          ]}
-                        >
-                          {mode.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            </ScrollView>
-
-            {/* Footer Buttons */}
-            <View
-              style={[
-                styles.modalFooter,
-                { borderTopColor: theme.colors.border },
-              ]}
-            >
-              <TouchableOpacity
-                style={[
-                  styles.footerButton,
-                  styles.cancelButton,
-                  { borderColor: theme.colors.border },
-                ]}
-                onPress={handleCancel}
-              >
-                <Text
-                  style={[
-                    styles.cancelButtonText,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.footerButton,
-                  styles.confirmButton,
-                  { backgroundColor: theme.colors.primary },
-                ]}
-                onPress={handleConfirm}
-              >
-                <Text style={styles.confirmButtonText}>Confirm</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      {/* ✅ FOOTBALL ONLY: Sort Matches Modal - Only shown for football */}
+      {currentSport === "football" && (
+        <SortMatchesModal
+          visible={showMatchModeModal}
+          currentSport={currentSport}
+          currentMatchMode={selectedMatchMode}
+          currentSortMode={selectedSortMode}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
     </View>
   );
 }
@@ -578,134 +276,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: "Inter-Bold",
     fontWeight: "bold",
-  },
-  scoreIcon: {
-    borderWidth: 1,
-    borderRadius: 3,
-    padding: 2,
-  },
-  scoreText: {
-    fontSize: 8, // Reduced font size
-    fontFamily: "Inter-Medium",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContainer: {
-    width: screenWidth * 0.9,
-    maxHeight: screenHeight * 0.8,
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontFamily: "Inter-SemiBold",
-  },
-  closeButton: {
-    padding: 4,
-  },
-  modalContent: {
-    padding: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: "Inter-SemiBold",
-    marginBottom: 12,
-  },
-  optionsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  optionCard: {
-    flex: 1,
-    minWidth: "30%",
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  optionText: {
-    fontSize: 12,
-    fontFamily: "Inter-Medium",
-    marginTop: 8,
-    textAlign: "center",
-    lineHeight: 16,
-  },
-  sortingOptions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  sortingCard: {
-    flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  sortingText: {
-    fontSize: 14,
-    fontFamily: "Inter-Medium",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  modalFooter: {
-    flexDirection: "row",
-    padding: 20,
-    gap: 12,
-    borderTopWidth: 1,
-  },
-  footerButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButton: {
-    borderWidth: 1,
-  },
-  confirmButton: {
-    // backgroundColor set dynamically
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontFamily: "Inter-Medium",
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontFamily: "Inter-Medium",
-    color: "#FFFFFF",
-  },
-  rugbyCloseButtonContainer: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    zIndex: 10,
-  },
-  rugbyCloseButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "rgba(0, 0, 0, 0.1)",
   },
   activeTab: {
     paddingHorizontal: 12,

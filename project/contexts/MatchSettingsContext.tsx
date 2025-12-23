@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Alert, Platform, Linking } from "react-native";
-import goalDetectionService from "@/services/goalDetectionService";
+import goalDetectionService from "../services/goalDetectionService";
 
 // Import notifications with proper error handling
 let Notifications: any = null;

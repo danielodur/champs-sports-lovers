@@ -1,0 +1,105 @@
+# CURSOR AI RULES - CRITICAL PROTECTION RULES
+# ⚠️  THESE RULES MUST BE RESPECTED AT ALL TIMES ⚠️
+# Position: Root of project - AI must read these rules before any operation
+
+# ============================================================================
+# CRITICAL SECURITY RULES - NEVER VIOLATE THESE
+# ============================================================================
+
+## 1. ENVIRONMENT FILES - ABSOLUTE PROTECTION
+- NEVER delete, overwrite, modify, truncate, or make ANY changes to:
+  - `.env` files (any variant: `.env`, `.env.local`, `.env.*.local`, `.env.production`, etc.)
+  - Any file containing "env" in the name that might contain sensitive credentials
+- NEVER access `.env.local` or protected files without EXPLICIT user permission
+- NEVER read or display environment variable values in code suggestions
+- NEVER hardcode API keys or credentials - always use `process.env.EXPO_PUBLIC_*` references
+- If environment file changes are needed, ALWAYS ask for explicit permission first
+
+## 2. FILE OPERATIONS - STRICT PROHIBITIONS
+- NEVER delete files without explicit user request
+- NEVER truncate files (removing content without replacement)
+- NEVER break existing functionality when making changes
+- NEVER modify core functions without explicit user permission
+- NEVER change function signatures, return types, or parameters without permission
+- NEVER remove or comment out existing code without explicit request
+- ALWAYS preserve existing code structure and patterns
+
+## 3. FUNCTION PROTECTION
+- NEVER modify function implementations without explicit user request
+- NEVER change function names, parameters, or return types
+- NEVER refactor functions unless explicitly asked
+- NEVER remove function exports or break function dependencies
+- ALWAYS maintain backward compatibility when making changes
+
+## 4. CODE INTEGRITY RULES
+- NEVER break existing code that is working
+- NEVER introduce breaking changes without explicit permission
+- NEVER remove or modify imports that are in use
+- NEVER change file paths or directory structures without permission
+- ALWAYS test changes before suggesting them
+- ALWAYS verify that changes don't break existing functionality
+
+## 5. PROTECTED FILES AND DIRECTORIES
+- NEVER modify files in:
+  - `.env*` (all variants)
+  - `node_modules/`
+  - `.git/`
+  - `android/` build files
+  - `ios/` build files
+  - `supabase/migrations/` (database migrations)
+  - `package.json` and `package-lock.json` (only with explicit permission)
+  - Any file marked as protected in `.cursorignore`
+
+## 6. USER PERMISSION REQUIREMENTS
+- ALWAYS ask for explicit permission before:
+  - Modifying `.env` files or any environment configuration
+  - Deleting any files
+  - Changing function signatures or implementations
+  - Breaking changes or refactoring
+  - Modifying protected files
+  - Making changes that could affect app functionality
+
+## 7. CODE SUGGESTION GUIDELINES
+- ALWAYS suggest changes rather than implementing them directly for:
+  - Environment file modifications
+  - Function signature changes
+  - Breaking changes
+  - File deletions
+- ALWAYS explain the impact of changes before implementing
+- ALWAYS preserve existing code patterns and conventions
+- ALWAYS maintain code consistency with the existing codebase
+
+## 8. ERROR HANDLING
+- If asked to modify protected files, politely decline and explain why
+- If environment variables are needed, suggest using existing `process.env` references
+- If breaking changes are requested, warn the user and ask for confirmation
+- Always provide alternatives that don't violate these rules
+
+# ============================================================================
+# PROJECT-SPECIFIC RULES
+# ============================================================================
+
+## React Native / Expo Project Rules
+- Always use `EXPO_PUBLIC_*` prefix for environment variables
+- Never modify `app.json`, `eas.json`, or build configuration without permission
+- Preserve existing component patterns and structure
+- Maintain TypeScript type safety
+
+## API Integration Rules
+- Never hardcode API keys - always use environment variables
+- Never expose API keys in code, logs, or error messages
+- Always use the existing API service patterns
+
+## Database Rules
+- Never modify Supabase migrations without explicit permission
+- Never change database schema without user approval
+- Always preserve existing database structure
+
+# ============================================================================
+# REMINDER FOR AI
+# ============================================================================
+# These rules are positioned at the root of the project for maximum visibility
+# Read and respect these rules before EVERY operation
+# When in doubt, ask the user for permission
+# Better to be cautious than to break something
+

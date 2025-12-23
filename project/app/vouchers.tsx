@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Search, Gift, Clock, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, CircleHelp as HelpCircle, MessageCircle, Calendar, Tag, Star } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface Voucher {
   id: string;

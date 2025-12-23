@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { StyleSheet, Text, View, FlatList } from "react-native";
-import MatchItem from "./MatchItem";
-import { useTheme } from "@/hooks/useTheme";
-import { useFavorites } from "@/hooks/useFavorites";
-import { Match } from "@/types/match";
+// MatchItem is now merged into match-list.tsx - creating inline component
+import { useTheme } from "../hooks/useTheme";
+import { useFavorites } from "../hooks/useFavorites";
+import { Match } from "../types/match";
 import { usePathname, useRouter } from "expo-router";
-import teamLogoService from "@/services/teamLogoService";
+import teamLogoService from "../services/teamLogoService";
 // Removed leagueNormalizationService import - using API league names directly
-import { favoritesService } from "@/services/favoritesService";
+import favoritesService from "../services/favoritesService";
 
 interface CompetitionMatchListProps {
   matches: Match[];
@@ -83,6 +83,13 @@ const groupByCompetition = (matches: Match[]) => {
     // Use the league name directly from the API data
     let competitionName = match.league || "Other Competition";
 
+    // Remove any numbers, brackets, or ranking prefixes from league names
+    competitionName = competitionName
+      .replace(/^\[?\d+\]?\s*[-.]?\s*/, "")
+      .trim();
+    competitionName = competitionName.replace(/\(\d+\)/g, "").trim();
+    competitionName = competitionName.replace(/^\d+\s*[-.]?\s*/, "").trim();
+
     // Clean up the competition name - capitalize first letter of each word
     competitionName = competitionName
       .split(" ")
@@ -140,12 +147,12 @@ export default function CompetitionMatchList({
   const competitionGroups = groupByCompetition(matches);
 
   const toggleFavorite = useCallback(
-    async (matchId: string) => {
+    async (matchId: number) => {
       try {
         // Find the match in any competition group
         let match: Match | undefined;
         for (const group of competitionGroups) {
-          match = group.matches.find((m) => m.id === matchId);
+          match = group.matches.find((m) => m.id === matchId.toString());
           if (match) break;
         }
 
@@ -162,7 +169,9 @@ export default function CompetitionMatchList({
         const updatedGroups = competitionGroups.map((group) => ({
           ...group,
           matches: group.matches.map((m) =>
-            m.id === matchId ? { ...m, isFavorite: targetFavoriteStatus } : m
+            m.id === matchId.toString()
+              ? { ...m, isFavorite: targetFavoriteStatus }
+              : m,
           ),
         }));
 
@@ -173,7 +182,7 @@ export default function CompetitionMatchList({
         if (originalFavoriteStatus) {
           // Was favorited, so remove it
           operation = "REMOVE";
-          success = await removeFavorite(matchId);
+          success = await removeFavorite(matchId.toString());
         } else {
           // Was not favorited, so add it
           operation = "ADD";
@@ -190,9 +199,9 @@ export default function CompetitionMatchList({
           const revertedGroups = competitionGroups.map((group) => ({
             ...group,
             matches: group.matches.map((m) =>
-              m.id === matchId
+              m.id === matchId.toString()
                 ? { ...m, isFavorite: originalFavoriteStatus }
-                : m
+                : m,
             ),
           }));
 
@@ -205,42 +214,134 @@ export default function CompetitionMatchList({
         // Silently handle errors
       }
     },
-    [competitionGroups, addFavorite, removeFavorite, onFavoritesChange]
+    [competitionGroups, addFavorite, removeFavorite, onFavoritesChange],
   );
 
   const handleMatchPress = useCallback(
-    (match: Match) => {
+    (fixture: any) => {
+      // Convert fixture to match format
+      const match = {
+        id: fixture.fixture?.id?.toString() || fixture.id,
+        home: fixture.teams?.home || fixture.home,
+        away: fixture.teams?.away || fixture.away,
+        league: fixture.league?.name || fixture.league,
+      };
       // Using API Sports logos directly from match data
       const enhancedHomeLogo =
         match.home.logo ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          match.home.name.charAt(0)
+          match.home.name.charAt(0),
         )}&background=FFD700&color=000000&size=128&rounded=true&font-size=0.6`;
       const enhancedAwayLogo =
         match.away.logo ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(
-          match.away.name.charAt(0)
+          match.away.name.charAt(0),
         )}&background=9CA3AF&color=FFFFFF&size=128&rounded=true&font-size=0.6`;
 
       router.push({
-        pathname: "/match-details-new",
+        pathname: "/match-details",
         params: {
           matchId: match.id,
+          sport: "football", // ✅ Add sport parameter
+          homeTeam: match.home.name,
+          awayTeam: match.away.name,
+          homeScore: "0",
+          awayScore: "0",
+          status: "NS",
+          startTime: new Date().toISOString(),
+          league: match.league,
+          homeLogo: match.home.logo || "",
+          awayLogo: match.away.logo || "",
+          homeCorners: match.home.corners?.toString() || "0",
+          awayCorners: match.away.corners?.toString() || "0",
+          homeRank: match.home.rank?.toString(),
+          awayRank: match.away.rank?.toString(),
+          halftimeScore: "0-0",
+          from: "competition",
+          // ✅ API-DRIVEN: Pass venue data if available
+          venueName: "",
+          venueCity: "",
         },
       });
     },
-    [router]
+    [router],
   );
 
   const renderMatchItem = useCallback(
-    ({ item }: { item: Match }) => (
-      <MatchItem
-        match={item}
-        onToggleFavorite={toggleFavorite}
-        onPress={handleMatchPress}
-      />
-    ),
-    [toggleFavorite, handleMatchPress]
+    ({ item }: { item: Match }) => {
+      // Convert Match to Fixture format for MatchItem
+      const fixture = {
+        fixture: {
+          id: parseInt(item.id),
+          referee: null,
+          timezone: "UTC",
+          date: item.startTime,
+          timestamp: new Date(item.startTime).getTime() / 1000,
+          periods: {
+            first: null,
+            second: null,
+          },
+          venue: {
+            id: null,
+            name: null,
+            city: null,
+          },
+          status: {
+            long: null,
+            short: item.status as any,
+            elapsed: null,
+            extra: null,
+          },
+        },
+        teams: {
+          home: {
+            id: null,
+            name: item.home.name || null,
+            logo: item.home.logo || null,
+          },
+          away: {
+            id: null,
+            name: item.away.name || null,
+            logo: item.away.logo || null,
+          },
+        },
+        league: {
+          id: null,
+          name: item.league || null,
+          country: null,
+          logo: null,
+          flag: null,
+        },
+        goals: {
+          home: item.home.score || 0,
+          away: item.away.score || 0,
+        },
+        score: {
+          halftime: { home: null, away: null },
+          fulltime: { home: item.home.score || 0, away: item.away.score || 0 },
+          extratime: { home: null, away: null },
+          penalty: { home: null, away: null },
+        },
+        events: null,
+        isFavorite: item.isFavorite,
+      };
+
+      return (
+        <View
+          style={{ padding: 8, backgroundColor: "#f5f5f5", marginVertical: 2 }}
+        >
+          <Text>
+            {fixture.teams.home?.name || item.home.name} vs{" "}
+            {fixture.teams.away?.name || item.away.name}
+          </Text>
+          <Text>
+            {fixture.goals?.home || item.home.score} -{" "}
+            {fixture.goals?.away || item.away.score}
+          </Text>
+        </View>
+      );
+    },
+    [toggleFavorite, handleMatchPress],
   );
 
   const renderCompetitionHeader = useCallback(
@@ -258,7 +359,7 @@ export default function CompetitionMatchList({
         </Text>
       </View>
     ),
-    [theme]
+    [theme],
   );
 
   const renderCompetitionSection = useCallback(
@@ -272,7 +373,7 @@ export default function CompetitionMatchList({
         ))}
       </View>
     ),
-    [renderCompetitionHeader, renderMatchItem]
+    [renderCompetitionHeader, renderMatchItem],
   );
 
   if (matches.length === 0) {
@@ -323,14 +424,11 @@ const styles = StyleSheet.create({
   },
   competitionHeader: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
-    backgroundColor: "#F8F9FA",
+    paddingVertical: 8,
   },
   competitionHeaderText: {
-    fontSize: 16,
-    fontFamily: "Inter-Bold",
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "500",
+    textTransform: "uppercase",
   },
 });

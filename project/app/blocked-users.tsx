@@ -17,7 +17,7 @@ import {
   Users,
   Shield,
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface BlockedUser {
   id: string;

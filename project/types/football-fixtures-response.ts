@@ -46,6 +46,12 @@ export interface Fixture {
         | "FT"
         | "AET"
         | "PEN"
+        | "AOT"  // ✅ BASKETBALL: After OverTime
+        | "CANC"
+        | "ABD"
+        | "SUSP"
+        | "INT"
+        | "PST"
         | null;
       elapsed: number | null;
       extra: number | null;
@@ -89,6 +95,10 @@ export interface Fixture {
   events: FixtureEvent[] | null;
   isFavorite?: boolean;
   goalStatus?: "goal_scored" | "goal_cancelled" | undefined;
+  hasVideoBroadcast?: boolean;
+  hasAnimationBroadcast?: boolean;
+  homeTeamRank?: number | null;
+  awayTeamRank?: number | null;
 }
 
 export interface FixtureLeague {

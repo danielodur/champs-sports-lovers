@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ScrollView, Key
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { X, User, Camera, Image as ImageIcon, Check } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
-import useAuth from '@/hooks/useAuth';
+import useAuth from '../hooks/useAuth';
 
 // Simple in-memory storage for demonstration (in real app, use AsyncStorage)
 declare global {

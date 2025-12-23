@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Mod
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Share2, Gift, Trophy, Users, Target, Star, ArrowRight, ChevronRight, MessageCircle, Phone, X, MessageSquare } from 'lucide-react-native';
-import { useTheme, useThemeMode } from '@/hooks/useTheme';
+import { useTheme, useThemeMode } from '../hooks/useTheme';
 import { BlurView } from 'expo-blur';
 
 export default function InviteFriendsScreen() {

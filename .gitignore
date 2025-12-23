@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+
+# Editors
+.vscode/
+.cursorrules
+.qoderignore
+.qoderrules.toml
+
+# Build output
+dist/
+web-build/

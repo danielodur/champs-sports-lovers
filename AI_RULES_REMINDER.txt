@@ -1,0 +1,34 @@
+================================================================================
+⚠️  CRITICAL AI PROTECTION RULES - READ BEFORE ANY OPERATION  ⚠️
+================================================================================
+
+This project has strict protection rules that MUST be respected by AI assistants.
+
+RULES FILES:
+- .cursorrules (Root directory) - Comprehensive AI behavior rules
+- .cursorignore (Root directory) - Protected files and directories
+
+ABSOLUTE PROHIBITIONS:
+1. NEVER delete, modify, truncate, or break any files
+2. NEVER modify .env files or any environment configuration files  
+3. NEVER change functions without explicit user permission
+4. NEVER access protected files without user permission
+5. NEVER introduce breaking changes without confirmation
+
+PROTECTED FILES:
+- All .env* files (.env, .env.local, .env.*.local, etc.)
+- package.json and package-lock.json
+- Build configuration files (app.json, eas.json, etc.)
+- Database migrations (supabase/migrations/)
+- Native build files (android/, ios/)
+
+REQUIRED BEHAVIOR:
+- Always ask for permission before modifying protected files
+- Always preserve existing code structure and patterns
+- Always maintain backward compatibility
+- Always explain changes before implementing them
+
+================================================================================
+READ .cursorrules AND .cursorignore FOR COMPLETE DETAILS
+================================================================================
+

@@ -31,7 +31,7 @@ import {
   User,
   Plus,
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface InviteUser {
   id: string;

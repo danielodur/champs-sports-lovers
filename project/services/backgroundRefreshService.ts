@@ -1,5 +1,5 @@
 import { fetchMatches, subscribeToMatchUpdates } from './matchService';
-import { Match } from '@/types/match';
+import { Match } from '../types/match';
 
 class BackgroundRefreshService {
   private refreshInterval: ReturnType<typeof setInterval> | null = null;

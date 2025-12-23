@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Image, Li
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Bell, Settings, CircleAlert as AlertCircle } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { useNotificationPermissions } from '@/hooks/useNotificationPermissions';
+import { useTheme } from '../hooks/useTheme';
+import { useNotificationPermissions } from '../hooks/useNotificationPermissions';
 
 export default function NotificationSettingsScreen() {
   const router = useRouter();

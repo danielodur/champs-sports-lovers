@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Alert } f
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, HelpCircle, Volume2 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
-import { useMatchSettings } from '@/contexts/MatchSettingsContext';
-import { testSound, playRedCardSound } from '@/utils/SoundManager';
-import { testVibration, vibrateForRedCard } from '@/utils/VibrationManager';
+import { useTheme } from '../hooks/useTheme';
+import { useMatchSettings } from '../contexts/MatchSettingsContext';
+import { testSound, playRedCardSound } from '../utils/SoundManager';
+import { testVibration, vibrateForRedCard } from '../utils/VibrationManager';
 
 export default function VibrationSettingsScreen() {
   const router = useRouter();

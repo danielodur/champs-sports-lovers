@@ -6,18 +6,26 @@ import "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
 import * as Linking from "expo-linking";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { LiveTimerProvider } from "@/contexts/LiveTimerContext";
-import { MatchSettingsProvider } from "@/contexts/MatchSettingsContext";
-import { MessagesProvider } from "@/contexts/MessagesContext";
-import { InvitesProvider } from "@/contexts/InvitesContext";
-import GoalNotificationOverlay from "@/components/GoalNotificationOverlay"; // ✅ ADDED: Import goal notification overlay
+import { LanguageProvider } from "../contexts/LanguageContext";
+import { LiveTimerProvider } from "../contexts/LiveTimerContext";
+import { MatchSettingsProvider } from "../contexts/MatchSettingsContext";
+import { MessagesProvider } from "../contexts/MessagesContext";
+import { InvitesProvider } from "../contexts/InvitesContext";
+import GoalNotificationOverlay from "../components/GoalNotificationOverlay"; // ✅ ADDED: Import goal notification overlay
 import "./i18n";
 
 // ✅ PERFORMANCE: Import preloading services
-import { preloadMatchData } from "@/services/matchService";
-import { sportsApiService } from "@/services/sportsApiService";
-import { preloadSounds, cleanupSounds } from "@/utils/SoundManager";
+import { preloadMatchData } from "../services/matchService";
+import { sportsApiService } from "../services/sportsApiService";
+import { preloadSounds, cleanupSounds } from "../utils/SoundManager";
+
+// ✅ DEBUG: Import environment variable testing (only in development)
+if (__DEV__) {
+  import("../utils/envTest");
+}
+
+// ✅ ERROR BOUNDARY: Import error boundary for catching unhandled errors
+import ErrorBoundary from "../components/ErrorBoundary";
 
 // ✅ FONT FIX: Import Inter fonts from Expo Google Fonts
 import {
@@ -59,13 +67,13 @@ export default function RootLayout() {
       ])
         .then(() => {
           console.log(
-            "🚀 APP STARTUP: INSTANT data preloading completed - all screens will be lightning fast!"
+            "🚀 APP STARTUP: INSTANT data preloading completed - all screens will be lightning fast!",
           );
         })
         .catch((error) => {
           console.log(
             "⚠️ APP STARTUP: Preloading failed, continuing normally:",
-            error
+            error,
           );
         });
 
@@ -89,18 +97,18 @@ export default function RootLayout() {
 
           // Check if there are any errors in the callback
           if (url.includes("error=")) {
-            console.error("❌ OAuth callback error detected in URL:", url);
+            console.log("❌ OAuth callback error detected in URL");
             // Extract error details
             const urlParams = new URLSearchParams(url.split("?")[1]);
             const error = urlParams.get("error");
             const errorDescription = urlParams.get("error_description");
-            console.error("❌ OAuth Error:", error, errorDescription);
+            console.log("❌ OAuth Error occurred");
           } else {
             console.log("✅ OAuth callback successful, processing...");
 
             // Try to manually process the OAuth callback
             try {
-              const { supabase } = await import("@/services/supabaseClient");
+              const { supabase } = await import("../services/supabaseClient");
 
               // Extract access token from the URL fragment
               const accessToken = url.split("#access_token=")[1]?.split("&")[0];
@@ -110,11 +118,11 @@ export default function RootLayout() {
 
               console.log(
                 "🔐 Extracted access token:",
-                accessToken ? "Found" : "Not found"
+                accessToken ? "Found" : "Not found",
               );
               console.log(
                 "🔐 Extracted refresh token:",
-                refreshToken ? "Found" : "Not found"
+                refreshToken ? "Found" : "Not found",
               );
 
               if (accessToken) {
@@ -125,26 +133,23 @@ export default function RootLayout() {
                 });
 
                 if (error) {
-                  console.error(
-                    "❌ Error setting session after OAuth callback:",
-                    error
-                  );
+                  console.log("❌ Error setting session after OAuth callback");
                 } else if (data.session) {
                   console.log(
-                    "✅ Session successfully set after OAuth callback"
+                    "✅ Session successfully set after OAuth callback",
                   );
                   console.log(
                     "✅ User authenticated:",
-                    data.session.user.email
+                    data.session.user.email,
                   );
                 } else {
                   console.log("⚠️ No session found after OAuth callback");
                 }
               } else {
-                console.error("❌ No access token found in URL");
+                console.log("❌ No access token found in URL");
               }
             } catch (importError) {
-              console.error("❌ Error importing supabase client:", importError);
+              console.log("❌ Error importing supabase client");
             }
           }
 
@@ -185,66 +190,67 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <LanguageProvider>
-        <LiveTimerProvider>
-          <MatchSettingsProvider>
-            <MessagesProvider>
-              <InvitesProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen
-                    name="(tabs)"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="match-details"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen name="top" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="search"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="news-detail"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="profile-page"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="login-register"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="register-and-login"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="about-us"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="help-center"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="competition-details"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen
-                    name="results"
-                    options={{ headerShown: false }}
-                  />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
-                {/* ✅ ADDED: Global goal notification overlay for all screens */}
-                <GoalNotificationOverlay />
-              </InvitesProvider>
-            </MessagesProvider>
-          </MatchSettingsProvider>
-        </LiveTimerProvider>
-      </LanguageProvider>
+      <ErrorBoundary>
+        <LanguageProvider>
+          <LiveTimerProvider>
+            <MatchSettingsProvider>
+              <MessagesProvider>
+                <InvitesProvider>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen
+                      name="(tabs)"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="match-details"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen name="top" options={{ headerShown: false }} />
+                    <Stack.Screen
+                      name="search"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="news-detail"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="profile-page"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="login-register"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="register-and-login"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="about-us"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="help-center"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="competition-details"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                      name="results"
+                      options={{ headerShown: false }}
+                    />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
+                  <GoalNotificationOverlay />
+                </InvitesProvider>
+              </MessagesProvider>
+            </MatchSettingsProvider>
+          </LiveTimerProvider>
+        </LanguageProvider>
+      </ErrorBoundary>
     </GestureHandlerRootView>
   );
 }

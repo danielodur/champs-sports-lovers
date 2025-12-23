@@ -27,7 +27,7 @@ import {
   Share,
   Info
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface CalculatorType {
   id: string;

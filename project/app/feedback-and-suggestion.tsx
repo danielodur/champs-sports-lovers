@@ -27,7 +27,7 @@ import {
   Check,
   FileCheck
 } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 
 interface ProblemType {
   id: string;

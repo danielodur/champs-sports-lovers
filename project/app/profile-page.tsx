@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platfo
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { X, Calendar, MapPin, User, Phone, Mail, Lock, Navigation, Search, Check, ChevronRight, Trash2, QrCode, Users, Quote } from 'lucide-react-native';
-import { useTheme } from '@/hooks/useTheme';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
@@ -343,45 +343,8 @@ export default function ProfilePageScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            // Show second confirmation
-            Alert.alert(
-              'Final Confirmation',
-              'This will permanently delete your account and all associated data. This action cannot be undone.',
-              [
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Delete Account',
-                  style: 'destructive',
-                  onPress: () => {
-                    // TODO: Implement actual account deletion logic here
-                    Alert.alert(
-                      'Account Deletion',
-                      'Account deletion functionality is not yet implemented. Please contact support for assistance.',
-                      [{ text: 'OK' }]
-                    );
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
+    // Navigate to the official Delete Account screen in Help Center
+    router.push('/help-center/delete-account');
   };
 
 

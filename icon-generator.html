@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Generator - Champs Sports Lovers</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .icon-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            background: #fafafa;
+        }
+        .icon-preview {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+        .icon-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background: transparent;
+        }
+        .download-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background: #0056b3;
+        }
+        .instructions {
+            background: #e9f4ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #007bff;
+        }
+        .svg-container {
+            display: none;
+        }
+        #downloadAll {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+        }
+        #downloadAll:hover {
+            background: #1e7e34;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Champs Sports Lovers Icon Generator</h1>
+
+        <div class="instructions">
+            <h3>📋 Instructions:</h3>
+            <ol>
+                <li>Click "Generate All Icons" to create PNG files</li>
+                <li>Download each icon individually</li>
+                <li>Replace the files in your project's <code>modules/discover/assets</code> directory</li>
+                <li>The icons are generated as white designs on transparent backgrounds</li>
+            </ol>
+        </div>
+
+        <button id="downloadAll">🚀 Generate All Icons</button>
+
+        <div class="icon-grid" id="iconGrid">
+            <!-- Icons will be generated here -->
+        </div>
+
+        <!-- Hidden SVG templates -->
+        <div class="svg-container">
+            <svg id="replays-svg" width="64" height="64" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="white"/>
+                <polygon points="10,8 16,12 10,16" fill="#333"/>
+                <path d="M19 4a10 10 0 0 0-14 0M5 20a10 10 0 0 0 14 0" stroke="#333" stroke-width="0.8" fill="none"/>
+            </svg>
+
+            <svg id="charts-svg" width="64" height="64" viewBox="0 0 24 24">
+                <rect x="3" y="12" width="3" height="9" fill="white"/>
+                <rect x="7" y="8" width="3" height="13" fill="white"/>
+                <rect x="11" y="4" width="3" height="17" fill="white"/>
+                <rect x="15" y="10" width="3" height="11" fill="white"/>
+                <rect x="19" y="6" width="3" height="15" fill="white"/>
+                <line x1="2" y1="22" x2="22" y2="22" stroke="white" stroke-width="1"/>
+                <line x1="2" y1="22" x2="2" y2="2" stroke="white" stroke-width="1"/>
+            </svg>
+
+            <svg id="calculator-svg" width="64" height="64" viewBox="0 0 24 24">
+                <rect x="4" y="2" width="16" height="20" rx="2" fill="white"/>
+                <rect x="6" y="4" width="12" height="3" rx="1" fill="#333"/>
+                <circle cx="7.5" cy="10" r="1" fill="#333"/>
+                <circle cx="12" cy="10" r="1" fill="#333"/>
+                <circle cx="16.5" cy="10" r="1" fill="#333"/>
+                <circle cx="7.5" cy="13" r="1" fill="#333"/>
+                <circle cx="12" cy="13" r="1" fill="#333"/>
+                <circle cx="16.5" cy="13" r="1" fill="#333"/>
+                <circle cx="7.5" cy="16" r="1" fill="#333"/>
+                <circle cx="12" cy="16" r="1" fill="#333"/>
+                <rect x="15.5" y="15" width="2" height="4" rx="1" fill="#333"/>
+            </svg>
+
+            <svg id="odd-svg" width="64" height="64" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="white" stroke-width="1.5" fill="none"/>
+                <circle cx="12" cy="12" r="7" stroke="white" stroke-width="1.5" fill="none"/>
+                <circle cx="12" cy="12" r="4" stroke="white" stroke-width="1.5" fill="none"/>
+                <circle cx="12" cy="12" r="1.5" fill="white"/>
+                <path d="M12 2v4M12 18v4M22 12h-4M6 12H2" stroke="white" stroke-width="1.5"/>
+            </svg>
+
+            <svg id="results-svg" width="64" height="64" viewBox="0 0 24 24">
+                <path d="M12 2l3.09 6.26L22 9l-5 4.74L18.18 20.58 12 17l-6.18 3.58L7 13.74 2 9l6.91-.74L12 2z" fill="white"/>
+                <rect x="10" y="16" width="4" height="6" fill="white"/>
+                <rect x="8" y="20" width="8" height="2" fill="white"/>
+            </svg>
+
+            <svg id="live_charts-svg" width="64" height="64" viewBox="0 0 24 24">
+                <path d="M3 20l4-4 4 2 6-8 4 4" stroke="white" stroke-width="2" fill="none"/>
+                <line x1="2" y1="22" x2="22" y2="22" stroke="white" stroke-width="1.5"/>
+                <line x1="2" y1="22" x2="2" y2="2" stroke="white" stroke-width="1.5"/>
+                <circle cx="21" cy="14" r="2" fill="white"/>
+                <text x="17" y="5" fill="white" font-size="3" font-weight="bold">LIVE</text>
+            </svg>
+
+            <svg id="predictions-svg" width="64" height="64" viewBox="0 0 24 24">
+                <circle cx="12" cy="10" r="6" stroke="white" stroke-width="1.5" fill="none"/>
+                <path d="M12 6l1.09 2.26L16 8.5l-1.75 1.7.43 2.3L12 11.3l-2.68 1.2.43-2.3L8 8.5l2.91-.24L12 6z" fill="white"/>
+                <rect x="8" y="16" width="8" height="2" rx="1" fill="white"/>
+                <rect x="10" y="18" width="4" height="4" rx="1" fill="white"/>
+            </svg>
+
+            <svg id="analysis-svg" width="64" height="64" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="6" stroke="white" stroke-width="2" fill="none"/>
+                <path d="M21 21l-4.35-4.35" stroke="white" stroke-width="2"/>
+                <rect x="7" y="8" width="8" height="6" rx="1" fill="none" stroke="white" stroke-width="1"/>
+                <path d="M9 12l2-2 2 1 2-2" stroke="white" stroke-width="1.5" fill="none"/>
+            </svg>
+
+            <svg id="heat_index-svg" width="64" height="64" viewBox="0 0 24 24">
+                <rect x="10" y="3" width="4" height="14" rx="2" fill="white"/>
+                <circle cx="12" cy="19" r="4" fill="white"/>
+                <circle cx="12" cy="19" r="2.5" fill="#333"/>
+                <rect x="11" y="5" width="2" height="10" fill="#333"/>
+                <path d="M7 6s-1.5 1-1.5 2 1.5 2 1.5 2M7 9s-1.5 1-1.5 2 1.5 2 1.5 2" stroke="white" stroke-width="1.5" fill="none"/>
+                <path d="M17 6s1.5 1 1.5 2-1.5 2-1.5 2M17 9s1.5 1 1.5 2-1.5 2-1.5 2" stroke="white" stroke-width="1.5" fill="none"/>
+            </svg>
+
+            <svg id="performance-svg" width="64" height="64" viewBox="0 0 24 24">
+                <path d="M3 17l6-6 4 4 8-8" stroke="white" stroke-width="2.5" fill="none"/>
+                <path d="M15 7h6v6" stroke="white" stroke-width="2" fill="none"/>
+                <circle cx="9" cy="11" r="1.5" fill="white"/>
+                <circle cx="13" cy="15" r="1.5" fill="white"/>
+                <circle cx="21" cy="7" r="1.5" fill="white"/>
+                <rect x="2" y="19" width="2" height="3" fill="white"/>
+                <rect x="5" y="17" width="2" height="5" fill="white"/>
+                <rect x="8" y="18" width="2" height="4" fill="white"/>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        const icons = [
+            { name: 'replays', label: 'Replays', color: '#FF6B35' },
+            { name: 'charts', label: 'My Lineup', color: '#4ECDC4' },
+            { name: 'calculator', label: 'Calculator', color: '#45B7D1' },
+            { name: 'odd', label: 'Odds', color: '#96CEB4' },
+            { name: 'results', label: 'Results', color: '#FFEAA7' },
+            { name: 'live_charts', label: 'Live Stats', color: '#DDA0DD' },
+            { name: 'predictions', label: 'Predictions', color: '#98D8C8' },
+            { name: 'analysis', label: 'Analysis', color: '#F7DC6F' },
+            { name: 'heat_index', label: 'Heat Index', color: '#BB8FCE' },
+            { name: 'performance', label: 'Performance', color: '#85C1E9' }
+        ];
+
+        function createCanvas(svgId, iconName, backgroundColor) {
+            const svg = document.getElementById(svgId);
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = 64;
+            canvas.height = 64;
+
+            // Create image from SVG
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const img = new Image();
+
+            return new Promise((resolve) => {
+                img.onload = function() {
+                    // Clear canvas with transparent background
+                    ctx.clearRect(0, 0, 64, 64);
+
+                    // Draw the SVG
+                    ctx.drawImage(img, 0, 0, 64, 64);
+
+                    resolve(canvas);
+                };
+
+                img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+            });
+        }
+
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        function createIconCard(icon) {
+            const card = document.createElement('div');
+            card.className = 'icon-card';
+
+            const preview = document.createElement('div');
+            preview.className = 'icon-preview';
+            preview.style.backgroundColor = icon.color;
+
+            const name = document.createElement('div');
+            name.className = 'icon-name';
+            name.textContent = icon.label;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            canvas.style.display = 'none';
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.textContent = `Download ${icon.name}.png`;
+
+            downloadBtn.onclick = async () => {
+                const generatedCanvas = await createCanvas(`${icon.name}-svg`, icon.name, icon.color);
+                downloadCanvas(generatedCanvas, `${icon.name}.png`);
+            };
+
+            preview.appendChild(canvas);
+            card.appendChild(preview);
+            card.appendChild(name);
+            card.appendChild(downloadBtn);
+
+            return card;
+        }
+
+        function generateAllIcons() {
+            const grid = document.getElementById('iconGrid');
+            grid.innerHTML = '';
+
+            icons.forEach(icon => {
+                const card = createIconCard(icon);
+                grid.appendChild(card);
+            });
+
+            // Auto-generate preview canvases
+            icons.forEach(async (icon) => {
+                const canvas = await createCanvas(`${icon.name}-svg`, icon.name, icon.color);
+                const preview = document.querySelector(`.icon-card:nth-child(${icons.indexOf(icon) + 1}) .icon-preview`);
+                const existingCanvas = preview.querySelector('canvas');
+                if (existingCanvas) {
+                    existingCanvas.width = 24;
+                    existingCanvas.height = 24;
+                    existingCanvas.style.display = 'block';
+                    const ctx = existingCanvas.getContext('2d');
+                    ctx.drawImage(canvas, 0, 0, 24, 24);
+                }
+            });
+        }
+
+        document.getElementById('downloadAll').addEventListener('click', generateAllIcons);
+
+        // Generate icons on page load
+        window.addEventListener('load', generateAllIcons);
+    </script>
+</body>
+</html>
